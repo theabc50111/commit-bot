@@ -28,6 +28,25 @@ def run_command(command: Union[list[str], str], extra_args: Optional[list[str]] 
     except FileNotFoundError as e:
         print(f"❌ command might be wrong, command: {command},\nError message: \n{e}")
         raise e
+
+
+def run():
+    """Runs the main command to check if the current directory is a git repository."""
+    try:
+        output = run_command(commands["is_git_repo"])
+        print(f"✅ Current directory is a git repository: {output.strip()}")
+        staged_changes = run_command(commands["get_stashed_changes"]).strip()
+        if not staged_changes:
+            print("No staged changes found.")
+            sys.exit(0)
     except subprocess.CalledProcessError as e:
-        print(f"❌ extra_args might be wrong, extra_args: {extra_args},\nError message: \n{e.stderr}")
-        raise e
+        if "not a git repository" in e.stderr:
+            print("❌ Current directory is not a git repository.")
+            sys.exit(1)
+        else:
+            print(f"❌ Error: \n{e.stderr}")
+            raise e
+
+
+if __name__ == "__main__":
+    run()
