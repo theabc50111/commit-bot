@@ -1,3 +1,5 @@
+import subprocess
+
 import pytest
 
 from src.commit_pilot.main import run_command
@@ -13,5 +15,16 @@ from src.commit_pilot.main import run_command
 )
 def test_run_command(command, extra_args, expected):
     res = run_command(command, extra_args)
-    print(res)
     assert expected in res
+
+@pytest.mark.parametrize(
+    argnames = "command, extra_args, expected_exception",
+    argvalues = [
+        ("git", ["invalid-command"], subprocess.CalledProcessError),
+        ("no_such_command", None, FileNotFoundError),
+    ],
+    ids = ["invalid args", "invalid command"]
+)
+def test_run_command_invalid(command, extra_args, expected_exception):
+    with pytest.raises(expected_exception):
+        run_command(command, extra_args)
