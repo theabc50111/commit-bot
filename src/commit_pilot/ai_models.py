@@ -8,14 +8,21 @@ from pyhocon import ConfigFactory
 
 
 class AIModels:
-    def __init__(self):
-        self._models = {}
+    _instance = None
+
+    def __new__(cls):
+        """Singleton pattern to ensure only one instance of AIModels exists."""
+        if cls._instance is not None:
+            return cls._instance
+        cls._instance = super(AIModels, cls).__new__(cls)
+        cls._instance._models = {}
         script_dir = os.path.dirname(os.path.abspath(__file__))
         conf_path = os.path.join(script_dir, "conf", "model.conf")
         conf = ConfigFactory.parse_file(conf_path)
         ollama_base_url = conf.get("ollama_base_url")
-        self._ollama_base_url = ollama_base_url
-        self._model_configs = conf.get_config("model_configs").as_plain_ordered_dict()
+        cls._instance._ollama_base_url = ollama_base_url
+        cls._instance._model_configs = conf.get_config("model_configs").as_plain_ordered_dict()
+        return cls._instance
 
     def _create_model(self, model_name: str):
         config = self._model_configs.get(model_name)
