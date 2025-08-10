@@ -1,0 +1,47 @@
+services:
+  # Service for develop application
+  app:
+    # Specify the Docker image to use for this service
+    image: python:3.10.18
+    # Restart the container if it stops for any reason, unless explicitly stopped
+    restart: unless-stopped
+    # Mount volumes for persistent storage and configuration
+    volumes:
+      # Mount the host's localtime for correct timezone inside the container
+      - /etc/localtime:/etc/localtime:ro
+      # Mount your local codes directory into the container's workspace
+      - ~/Documents/codes:/workspace
+    # Configure runtime and GPU access for the container
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # Specify the Docker runtime to use (e.g., nvidia for GPU support)
+    runtime: nvidia
+    tty: true           # equivalent to docker run -t
+    command: bash
+
+
+  # Service for Ollama
+  ollama:
+    # Specify the Docker image to use for this service
+    image: ollama/ollama
+    # Restart the container if it stops for any reason, unless explicitly stopped
+    restart: unless-stopped
+    # Mount volumes for persistent storage and configuration
+    volumes:
+      # Mount the host's localtime for correct timezone inside the container
+      - /etc/localtime:/etc/localtime:ro
+    # Configure runtime and GPU access for the container
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # Specify the Docker runtime to use (e.g., nvidia for GPU support)
+    runtime: nvidia
