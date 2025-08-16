@@ -32,24 +32,16 @@ class AIModels:
             return None
 
         model_type = config["type"]
-        model_id = config.get("model") or config.get("model_path")
+        model_id = config.get("model")
 
         if model_type == "ollama":
             return ChatOllama(model=model_id, streaming=True, base_url=self._ollama_base_url)
         elif model_type == "openai":
             return ChatOpenAI(model=model_id, streaming=True, api_key=os.environ.get("OPENAI_API_KEY"))
         elif model_type == "gemini":
-            return ChatGoogleGenerativeAI(
-                model=model_id,
-                streaming=True,
-                google_api_key=os.environ.get("GOOGLE_API_KEY"),
-            )
+            return ChatGoogleGenerativeAI(model=model_id, streaming=True, google_api_key=os.environ.get("GOOGLE_API_KEY"))
         elif model_type == "claude":
-            return ChatAnthropic(
-                model=model_id,
-                streaming=True,
-                api_key=os.environ.get("ANTHROPIC_API_KEY"),
-            )
+            return ChatAnthropic(model=model_id, streaming=True, api_key=os.environ.get("ANTHROPIC_API_KEY"))
         elif model_type == "huggingface":
             hf_base_llm = get_hf_base_llm(config)
             return ChatHuggingFace(llm=hf_base_llm, streaming=True)
