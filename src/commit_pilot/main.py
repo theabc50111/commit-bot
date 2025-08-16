@@ -3,12 +3,51 @@ import subprocess
 import sys
 from typing import Optional, Union
 
+from src.commit_pilot.ai_models import AIModels
+from src.commit_pilot.utils import load_config
+
 commands = {
     "is_git_repo": "git rev-parse --git-dir",
     "clear_screen": ["cls" if os.name == "nt" else "clear"],
     "commit": "git commit -m",
     "get_stashed_changes": "git diff --cached",
 }
+
+
+def generate_commit_message(changes: str) -> str:
+    """Generates a commit message using the specified AI model."""
+    try:
+        model_name = load_config("job.conf")["used_model"]
+        ai_models = AIModels()
+        model = ai_models.get_model(model_name)
+        if not model:
+            raise ValueError(f"Model '{model_name}' is not available.")
+
+        response_chunks = model.stream(
+            [
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that generates concise commit messages based on code changes.",
+                },
+                {
+                    "role": "user",
+                    "content": f"Generate a concise commit message for the following changes:\n{changes}",
+                },
+            ]
+        )
+        commit_message = ""
+        for chunk in response_chunks:
+            commit_message += chunk.content
+            print(chunk.content, end="", flush=True)
+    except Exception as e:
+        print(f"❌ Error generating commit message: {e}")
+        sys.exit(1)
+
+    return commit_message
+
+
+changes = "Added new feature X and fixed bug Y."
+generate_commit_message(changes)
 
 
 def run_command(command: Union[list[str], str], extra_args: Optional[list[str]] = None):
