@@ -11,7 +11,9 @@ def ai_models():
 
 @pytest.mark.parametrize(
     "model_name, expected_model_name",
-    [("ollama-qwen3:0.6b", "qwen3:0.6b"),],
+    [
+        ("ollama-qwen3:0.6b", "qwen3:0.6b"),
+    ],
 )
 def test_ollama_model_streaming(ai_models, model_name, expected_model_name):
     """
@@ -45,17 +47,17 @@ def test_ai_models_is_singleton_and_caches_models():
     model1 = ai_models1.get_model("ollama-qwen3:0.6b")
     model2 = ai_models1.get_model("ollama-qwen3:0.6b")
 
-    # Check that they are the same model object
-    assert model1 is model2
-
     # Get the same model from the second instance
     model_from_instance2 = ai_models2.get_model("ollama-qwen3:0.6b")
-
-    # Check that it's the same model object as the one from the first instance
-    assert model1 is model_from_instance2
 
     print(f"id(ai_models1): {id(ai_models1)}")
     print(f"id(ai_models2): {id(ai_models2)}")
     print(f"id(model1): {id(model1)}")
     print(f"id(model2): {id(model2)}")
     print(f"id(model_from_instance2): {id(model_from_instance2)}")
+
+    # Check that they are the same model object
+    assert model1 is model2
+
+    # Check that it's the same model object as the one from the first instance
+    assert model1 is model_from_instance2
