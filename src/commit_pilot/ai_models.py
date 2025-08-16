@@ -5,7 +5,6 @@ from langchain_community.chat_models import ChatOllama
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_huggingface import ChatHuggingFace
 from langchain_openai import ChatOpenAI
-from pyhocon import ConfigFactory
 
 from src.commit_pilot.huggingface_chat_model import get_hf_base_llm
 from src.commit_pilot.utils import load_config
@@ -58,17 +57,3 @@ class AIModels:
 
     def get_available_models(self):
         return list(self._model_configs.keys())
-
-
-if __name__ == "__main__":
-    from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-
-    ai_models = AIModels()
-    print("Available models:", ai_models.get_available_models())
-    model = ai_models.get_model("hf-gpt-oss-20b")
-    messages = [
-        SystemMessage(content="You are a helpful assistant that generates concise commit messages based on code changes."),
-        HumanMessage(content="Generate a concise commit message for the following changes:\nAdded new feature X and fixed bug Y."),
-    ]
-    for chunk in model.stream(messages):
-        print(chunk.content, end="", flush=True)
