@@ -4,6 +4,7 @@ import sys
 from typing import Optional, Union
 
 from .ai_models import AIModels
+from .prompts import default_system_prompt
 from .utils import load_config
 
 commands = {
@@ -27,7 +28,7 @@ def generate_commit_message(staged_changes: str) -> str:
             [
                 {
                     "role": "system",
-                    "content": "You are a helpful assistant that generates concise commit messages based on code changes.",
+                    "content": default_system_prompt,
                 },
                 {
                     "role": "user",
