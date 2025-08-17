@@ -3,8 +3,8 @@ import subprocess
 import sys
 from typing import Optional, Union
 
-from src.commit_pilot.ai_models import AIModels
-from src.commit_pilot.utils import load_config
+from .ai_models import AIModels
+from .utils import load_config
 
 commands = {
     "is_git_repo": "git rev-parse --git-dir",
@@ -14,7 +14,7 @@ commands = {
 }
 
 
-def generate_commit_message(changes: str) -> str:
+def generate_commit_message(staged_changes: str) -> str:
     """Generates a commit message using the specified AI model."""
     try:
         model_name = load_config("job.conf")["used_model"]
@@ -31,7 +31,7 @@ def generate_commit_message(changes: str) -> str:
                 },
                 {
                     "role": "user",
-                    "content": f"Generate a concise commit message for the following changes:\n{changes}",
+                    "content": f"Here are the staged changes:\n'''\n{staged_changes}n'''",
                 },
             ]
         )
@@ -39,6 +39,7 @@ def generate_commit_message(changes: str) -> str:
         for chunk in response_chunks:
             commit_message += chunk.content
             print(chunk.content, end="", flush=True)
+        print("\n" * 3, end="")
     except Exception as e:
         print(f"❌ Error generating commit message: {e}")
         sys.exit(1)
@@ -46,8 +47,32 @@ def generate_commit_message(changes: str) -> str:
     return commit_message
 
 
-changes = "Added new feature X and fixed bug Y."
-generate_commit_message(changes)
+def interaction_loop():
+    """Handles user interaction for commit message generation."""
+    staged_changes = run_command(commands["get_stashed_changes"]).strip()
+    if not staged_changes:
+        print("🔎 No staged changes found.")
+        sys.exit(0)
+    commit_message = generate_commit_message(staged_changes)
+    while True:
+        action = input("Proceed to commit? [y(yes) | n(no) | r(regenerate)]:").strip().lower()
+        match action:
+            case "r" | "regenerate":
+                subprocess.run(commands["clear_screen"])
+                print("🔄 Regenerating commit message...")
+                commit_message = generate_commit_message(staged_changes)
+                continue
+            case "y" | "yes":
+                print("🔄 Committing changes...")
+                res = run_command(command=commands["commit"], extra_args=[commit_message])
+                print(f"✅ Committed with message:\n{res.strip()}")
+                break
+            case "n" | "no":
+                print("❌ Commit aborted by user.")
+                break
+            case _:
+                print("❗ Invalid input. Please enter 'y', 'n', or 'r'.")
+                break
 
 
 def run_command(command: Union[list[str], str], extra_args: Optional[list[str]] = None):
@@ -74,10 +99,7 @@ def run():
     try:
         output = run_command(commands["is_git_repo"])
         print(f"✅ Current directory is a git repository: {output.strip()}")
-        staged_changes = run_command(commands["get_stashed_changes"]).strip()
-        if not staged_changes:
-            print("No staged changes found.")
-            sys.exit(0)
+        interaction_loop()
     except subprocess.CalledProcessError as e:
         if "not a git repository" in e.stderr:
             print("❌ Current directory is not a git repository.")
