@@ -13,16 +13,44 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-# Add your project's runtime dependencies here
-# dependencies = [
-#     "requests",
-# ]
+dependencies = [
+    "pyhocon",
+    "langchain==0.3.27",
+    "langchain-core==0.3.74",
+    "langchain-text-splitters==0.3.9",
+    "langchain-anthropic==0.3.18",
+    "langchain-google-genai==2.1.9",
+    "langchain-openai==0.3.29",
+    "langchain-huggingface==0.3.1",
+    "sentencepiece==0.2.0",
+    "torch==2.8.0",
+    "transformers==4.55.0",
+    "langchain-community==0.3.27",
+    "accelerate==1.10.0",
+]
 
 [project.optional-dependencies]
 dev = [
     "pytest",
     "pytest-cov",
+    "ipython",
+    "pylint",
+    "flake8",
+    "flake8-quotes",
+    "pep8-naming",
+    "isort",
+    "openpyxl",
+    "visidata",
+    "csvkit",
+    "black",
+    "tabulate[widechars]",
 ]
+
+[project.scripts]
+commit-pilot = "commit_pilot.main:run"
+
+[tool.setuptools.package-data]
+"commit_pilot" = ["conf/*.conf"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
