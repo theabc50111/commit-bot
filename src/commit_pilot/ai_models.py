@@ -6,8 +6,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_huggingface import ChatHuggingFace
 from langchain_openai import ChatOpenAI
 
-from src.commit_pilot.huggingface_chat_model import get_hf_base_llm
-from src.commit_pilot.utils import load_config
+from .huggingface_chat_model import get_hf_base_llm
+from .utils import load_config
 
 
 class AIModels:
