@@ -4,7 +4,7 @@ import sys
 from typing import Optional, Union
 
 from .ai_models import AIModels
-from .prompts import default_system_prompt
+from .prompts import deriv_sys_ppt_1, deriv_sys_ppt_2, deriv_sys_ppt_3
 from .utils import load_config
 
 commands = {
@@ -28,11 +28,11 @@ def generate_commit_message(staged_changes: str) -> str:
             [
                 {
                     "role": "system",
-                    "content": default_system_prompt,
+                    "content": deriv_sys_ppt_1,
                 },
                 {
                     "role": "user",
-                    "content": f"Here are the staged changes:\n'''\n{staged_changes}n'''",
+                    "content": f"Here are the staged changes:\n'''\n{staged_changes}\n'''",
                 },
             ]
         )
