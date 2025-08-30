@@ -1,4 +1,7 @@
 import os
+from .prompts import deriv_sys_ppt_1, deriv_sys_ppt_2, deriv_sys_ppt_3
+import random
+from typing import Any
 
 from pyhocon import ConfigFactory
 
@@ -17,3 +20,12 @@ def load_config(config_file_name: str) -> ConfigFactory:
         raise FileNotFoundError(f"Configuration file {config_file_name} not found in {script_dir}/conf")
 
     return ConfigFactory.parse_file(config_path)
+
+def get_conf_regen_commit_msg() -> tuple[str, dict[str, Any]]:
+    new_model_gen_conf = {
+        "temperature":random.uniform(0.3, 0.7)
+    }
+    new_sys_ppt = random.choice([deriv_sys_ppt_1, deriv_sys_ppt_2, deriv_sys_ppt_3])
+
+    return new_sys_ppt, new_model_gen_conf
+
