@@ -119,7 +119,7 @@ def interaction_loop():
                 print("\n" * 3, end="")
                 continue
             case _:
-                print("❗ Invalid input. Please enter 'y', 'n', or 'r'.")
+                print("❗ Invalid input. Please enter 'y', 'n','r', or 'e'.")
                 break
 
 
