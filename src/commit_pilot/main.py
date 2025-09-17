@@ -1,13 +1,13 @@
 import os
-import tempfile
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Optional, Union
 
 from .ai_models import AIModels
 from .prompts import deriv_sys_ppt_1 as defautl_sys_ppt
-from .utils import load_config, get_conf_regen_commit_msg
+from .utils import get_conf_regen_commit_msg, load_config
 
 commands = {
     "is_git_repo": "git rev-parse --git-dir",
@@ -57,6 +57,7 @@ def generate_commit_message(staged_changes: str, random_regen: bool = False) -> 
 
     return commit_message
 
+
 def handel_edit_commit_message(commit_message: str) -> str:
     """Allows user to edit the generated commit message."""
 
@@ -84,6 +85,19 @@ def handel_edit_commit_message(commit_message: str) -> str:
             os.remove(temp_file_path)
 
 
+def show_commit_diff() -> None:
+    """Displays the current staged changes."""
+    try:
+        diff = run_command(commands["get_stashed_changes"])
+        if diff:
+            print("Current staged changes:\n")
+            print(diff)
+        else:
+            print("No staged changes found.")
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Error retrieving staged changes: {e.stderr}")
+        sys.exit(1)
+
 
 def interaction_loop():
     """Handles user interaction for commit message generation."""
@@ -93,7 +107,7 @@ def interaction_loop():
         sys.exit(0)
     commit_message = generate_commit_message(staged_changes)
     while True:
-        action = input("Proceed to commit? [y(yes) | n(no) | r(regenerate) | e(edit)]:").strip().lower()
+        action = input("Proceed to commit? [y(yes) | n(no) | s(show) | r(regenerate) | e(edit)]:").strip().lower()
         match action:
             case "r" | "regenerate":
                 subprocess.run(commands["clear_screen"])
@@ -101,6 +115,13 @@ def interaction_loop():
                 print("-" * 50 + "\n")
                 commit_message = generate_commit_message(staged_changes, random_regen=True)
                 continue
+            case "s" | "show":
+                subprocess.run(commands["clear_screen"])
+                show_commit_diff()
+                print("=" * 20 + "\n")
+                print("Generated commit message:\n")
+                print(commit_message)
+                print("-" * 50 + "\n")
             case "y" | "yes":
                 print("🔄 Committing changes...")
                 res = run_command(command=commands["commit"], extra_args=[commit_message])
@@ -119,7 +140,7 @@ def interaction_loop():
                 print("\n" * 3, end="")
                 continue
             case _:
-                print("❗ Invalid input. Please enter 'y', 'n','r', or 'e'.")
+                print("❗ Invalid input. Please enter 'y', 'n', 's', 'r', or 'e'.")
                 break
 
 
