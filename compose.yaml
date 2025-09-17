@@ -35,6 +35,8 @@ services:
     volumes:
       # Mount the host's localtime for correct timezone inside the container
       - /etc/localtime:/etc/localtime:ro
+      # Mount the startup script into the container
+      - ./pull_ollama_model.sh:/usr/local/bin/pull_ollama_model.sh:ro
     # Configure runtime and GPU access for the container
     deploy:
       resources:
@@ -45,3 +47,4 @@ services:
               capabilities: [gpu]
     # Specify the Docker runtime to use (e.g., nvidia for GPU support)
     runtime: nvidia
+    entrypoint: ["/bin/bash", "/usr/local/bin/pull_ollama_model.sh"]
