@@ -33,7 +33,10 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-cov",
+    "jupyterlab",
+    "jupyterlab-vim",
     "ipython",
+    "python-lsp-server[all]",
     "pylint",
     "flake8",
     "flake8-quotes",
