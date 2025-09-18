@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -15,6 +16,17 @@ commands = {
     "commit": "git commit -m",
     "get_stashed_changes": "git diff --cached",
 }
+
+
+def post_process_commit_message(message: str) -> str:
+    """Post-processes the generated commit message to remove unwanted artifacts."""
+    # Remove <think>...</think> blocks
+    message = re.sub(r"<think>.*?</think>", "", message, flags=re.DOTALL)
+    # Remove ``` code blocks and the language specifier
+    message = re.sub(r"```[\w]*\n?", "", message)
+    # Trim leading/trailing whitespace that might be left after removals
+    message = message.strip()
+    return message
 
 
 def generate_commit_message(staged_changes: str, random_regen: bool = False) -> str:
@@ -55,7 +67,7 @@ def generate_commit_message(staged_changes: str, random_regen: bool = False) -> 
         print(f"❌ Error generating commit message: {e}")
         sys.exit(1)
 
-    return commit_message
+    return post_process_commit_message(commit_message)
 
 
 def handel_edit_commit_message(commit_message: str) -> str:
@@ -97,7 +109,6 @@ def show_commit_diff() -> None:
     except subprocess.CalledProcessError as e:
         print(f"❌ Error retrieving staged changes: {e.stderr}")
         sys.exit(1)
-
 
 def interaction_loop():
     """Handles user interaction for commit message generation."""
