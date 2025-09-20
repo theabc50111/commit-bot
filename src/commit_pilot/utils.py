@@ -35,6 +35,8 @@ def post_process_commit_message(message: str) -> str:
     """Post-processes the generated commit message to remove unwanted artifacts."""
     # Remove <think>...</think> blocks
     message = re.sub(r"<think>.*?</think>", "", message, flags=re.DOTALL)
+    # Remove Body:\n
+    message = re.sub(r"Body:\n", "", message)
     # Remove ``` code blocks and the language specifier
     message = re.sub(r"```[\w]*\n?", "", message)
     # Trim leading/trailing whitespace that might be left after removals
