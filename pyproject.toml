@@ -27,6 +27,7 @@ dependencies = [
     "transformers==4.55.0",
     "langchain-community==0.3.27",
     "accelerate==1.10.0",
+    "litellm==1.76.3",
 ]
 
 [project.optional-dependencies]
