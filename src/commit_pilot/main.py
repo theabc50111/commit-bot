@@ -130,9 +130,10 @@ def interaction_loop():
                 print("-" * 50 + "\n")
             case "m" | "model":
                 subprocess.run(commands["clear_screen"])
+                valid_models = AIModels().list_available_models()
                 print(f"Current model: {MODEL_NAME}")
-                new_model = input("Enter new model name (or press Enter to keep current): ").strip()
-                if new_model in AIModels().list_available_models():
+                new_model = input(f"Enter new model name (or press Enter to keep current):\nAvailable models: {', '.join(valid_models)}\n>>> ")
+                if new_model in valid_models:
                     MODEL_NAME = new_model
                     print(f"Model changed to: {MODEL_NAME}")
                 else:
