@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import traceback
 from pathlib import Path
 from typing import Optional, Union
 
@@ -16,15 +17,17 @@ commands = {
     "get_stashed_changes": "git diff --cached",
 }
 
+MODEL_NAME = load_config("job.conf")["used_model"]
+
 
 def generate_commit_message(staged_changes: str, random_regen: bool = False) -> str:
     """Generates a commit message using the specified AI model."""
     try:
-        model_name = load_config("job.conf")["used_model"]
+        global MODEL_NAME
         ai_models = AIModels()
-        model = ai_models.get_model(model_name)
+        model = ai_models.get_model(MODEL_NAME)
         if not model:
-            raise ValueError(f"Model '{model_name}' is not available.")
+            raise ValueError(f"Model '{MODEL_NAME}' is not available.")
 
         if random_regen:
             new_sys_ppt, new_model_gen_conf = get_conf_regen_commit_msg()
@@ -46,13 +49,15 @@ def generate_commit_message(staged_changes: str, random_regen: bool = False) -> 
                 },
             ]
         )
+        print(f"🧠 Generating commit message using model '{MODEL_NAME}'...\n")
         commit_message = ""
         for chunk in response_chunks:
             commit_message += chunk.content
-            print(chunk.content, end="", flush=True)
+            print(chunk.reasoning or chunk.content, end="", flush=True)
         print("\n" * 3, end="")
     except Exception as e:
         print(f"❌ Error generating commit message: {e}")
+        traceback.print_exc()
         sys.exit(1)
 
     return post_process_commit_message(commit_message)
@@ -101,13 +106,14 @@ def show_commit_diff() -> None:
 
 def interaction_loop():
     """Handles user interaction for commit message generation."""
+    global MODEL_NAME
     staged_changes = run_command(commands["get_stashed_changes"]).strip()
     if not staged_changes:
         print("🔎 No staged changes found.")
         sys.exit(0)
     commit_message = generate_commit_message(staged_changes)
     while True:
-        action = input("Proceed to commit? [y(yes) | n(no) | s(show) | r(regenerate) | e(edit)]:").strip().lower()
+        action = input("Proceed to commit? [y(yes) | n(no) | s(show) | r(regenerate) | m(model) | e(edit)]:").strip().lower()
         match action:
             case "r" | "regenerate":
                 subprocess.run(commands["clear_screen"])
@@ -122,6 +128,15 @@ def interaction_loop():
                 print("Generated commit message:\n")
                 print(commit_message)
                 print("-" * 50 + "\n")
+            case "m" | "model":
+                subprocess.run(commands["clear_screen"])
+                print(f"Current model: {MODEL_NAME}")
+                new_model = input("Enter new model name (or press Enter to keep current): ").strip()
+                if new_model in AIModels().list_available_models():
+                    MODEL_NAME = new_model
+                    print(f"Model changed to: {MODEL_NAME}")
+                else:
+                    print("Model unchanged.")
             case "y" | "yes":
                 print("🔄 Committing changes...")
                 res = run_command(command=commands["commit"], extra_args=[commit_message])
