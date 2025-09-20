@@ -1,13 +1,41 @@
-import os
+import litellm
 
-from langchain_anthropic import ChatAnthropic
-from langchain_community.chat_models import ChatOllama
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_huggingface import ChatHuggingFace
-from langchain_openai import ChatOpenAI
-
-from .huggingface_chat_model import get_hf_base_llm
 from .utils import load_config
+
+
+class ChunkWrapper:
+    def __init__(self, content, reasoning):
+        self.content = content
+        self.reasoning = reasoning
+
+
+class ModelExecutor:
+    def __init__(self, model_name, gen_conf, ollama_base_url=None):
+        self.model = model_name
+        self.gen_conf = gen_conf
+        self.api_base = None
+        if "ollama" in self.model:
+            self.api_base = ollama_base_url
+
+    def stream(self, messages):
+        params = self.gen_conf.copy()
+        if self.api_base:
+            params["api_base"] = self.api_base
+
+        response = litellm.completion(model=self.model, messages=messages, **params)
+
+        for chunk in response:
+            delta = chunk.choices[0].delta
+            content = getattr(delta, "content")
+            content = content if content is not None else ""
+            reasoning = getattr(delta, "reasoning_content", "")
+            yield ChunkWrapper(content, reasoning=reasoning)
+
+    def __setattr__(self, name, value):
+        if name in ["model", "gen_conf", "api_base"]:
+            super().__setattr__(name, value)
+        else:
+            self.gen_conf[name] = value
 
 
 class AIModels:
@@ -31,23 +59,12 @@ class AIModels:
         generate_conf = self._default_gen_configs
         if not model_conf or not generate_conf:
             return None
-        return model_conf.get("type"), {"model":model_conf.get("model_id"), "base_url":self._ollama_base_url, **generate_conf}
-
+        return model_conf.get("model"), generate_conf
 
     def _create_model(self, model_name: str):
-        model_type, gen_conf = self._get_all_configs(model_name)
-        if model_type == "ollama":
-            return ChatOllama(**gen_conf)
-        elif model_type == "openai":
-            return ChatOpenAI(**gen_conf, api_key=os.environ.get("OPENAI_API_KEY"))
-        elif model_type == "gemini":
-            return ChatGoogleGenerativeAI(**gen_conf, google_api_key=os.environ.get("GOOGLE_API_KEY"))
-        elif model_type == "claude":
-            return ChatAnthropic(**gen_conf, api_key=os.environ.get("ANTHROPIC_API_KEY"))
-        elif model_type == "huggingface":
-            raise NotImplementedError("Huggingface model support is not implemented yet.")
-            #hf_base_llm = get_hf_base_llm(config)
-            #return ChatHuggingFace(llm=hf_base_llm, streaming=True)
+        model_id, gen_conf = self._get_all_configs(model_name)
+        if model_id:
+            return ModelExecutor(model_id, gen_conf.copy(), self._ollama_base_url)
         return None
 
     def get_model(self, model_name: str):
@@ -59,5 +76,5 @@ class AIModels:
                 return None
         return self._models.get(model_name)
 
-    def get_available_models(self):
+    def list_available_models(self):
         return list(self._model_configs.keys())
