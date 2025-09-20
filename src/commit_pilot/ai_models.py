@@ -4,9 +4,22 @@ from .utils import load_config
 
 
 class ChunkWrapper:
+    _is_thinking = False
+
     def __init__(self, content, reasoning):
         self.content = content
-        self.reasoning = reasoning
+        self.reasoning = self._wrap_think_tag(reasoning)
+
+    @classmethod
+    def _wrap_think_tag(cls, reasoning):
+        output = reasoning
+        if reasoning and not cls._is_thinking:
+            output = "\n<think>" + reasoning
+            cls._is_thinking = True
+        if not reasoning and cls._is_thinking:
+            output = "\n</think>\n\n"
+            cls._is_thinking = False
+        return output
 
 
 class ModelExecutor:
