@@ -1,5 +1,4 @@
 import os
-import re
 import subprocess
 import sys
 import tempfile
@@ -8,7 +7,7 @@ from typing import Optional, Union
 
 from .ai_models import AIModels
 from .prompts import deriv_sys_ppt_1 as defautl_sys_ppt
-from .utils import get_conf_regen_commit_msg, load_config
+from .utils import get_conf_regen_commit_msg, load_config, post_process_commit_message
 
 commands = {
     "is_git_repo": "git rev-parse --git-dir",
@@ -16,17 +15,6 @@ commands = {
     "commit": "git commit -m",
     "get_stashed_changes": "git diff --cached",
 }
-
-
-def post_process_commit_message(message: str) -> str:
-    """Post-processes the generated commit message to remove unwanted artifacts."""
-    # Remove <think>...</think> blocks
-    message = re.sub(r"<think>.*?</think>", "", message, flags=re.DOTALL)
-    # Remove ``` code blocks and the language specifier
-    message = re.sub(r"```[\w]*\n?", "", message)
-    # Trim leading/trailing whitespace that might be left after removals
-    message = message.strip()
-    return message
 
 
 def generate_commit_message(staged_changes: str, random_regen: bool = False) -> str:
@@ -109,6 +97,7 @@ def show_commit_diff() -> None:
     except subprocess.CalledProcessError as e:
         print(f"❌ Error retrieving staged changes: {e.stderr}")
         sys.exit(1)
+
 
 def interaction_loop():
     """Handles user interaction for commit message generation."""
