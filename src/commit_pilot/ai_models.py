@@ -1,5 +1,6 @@
+from typing import Annotated, Any, Dict, Generator, List, Optional, Tuple
+
 import litellm
-from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from .utils import load_config
 
@@ -31,7 +32,7 @@ class ModelExecutor:
         if "ollama" in self.model:
             self.api_base = ollama_base_url
 
-    def stream(self, messages: List[Dict[str, str]]) -> Generator['ChunkWrapper', None, None]:
+    def stream(self, messages: Annotated[List[Dict[str, str]], 'Example: [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]']) -> Generator["ChunkWrapper", None, None]:
         params = self.gen_conf.copy()
         if self.api_base:
             params["api_base"] = self.api_base
@@ -53,9 +54,9 @@ class ModelExecutor:
 
 
 class AIModels:
-    _instance: Optional['AIModels'] = None
+    _instance: Optional["AIModels"] = None
 
-    def __new__(cls) -> 'AIModels':
+    def __new__(cls) -> "AIModels":
         """Singleton pattern to ensure only one instance of AIModels exists."""
         if cls._instance is not None:
             return cls._instance
@@ -75,7 +76,7 @@ class AIModels:
             return None
         return model_conf.get("model"), generate_conf
 
-    def _create_model(self, model_name: str) -> Optional['ModelExecutor']:
+    def _create_model(self, model_name: str) -> Optional["ModelExecutor"]:
         configs = self._get_all_configs(model_name)
         if configs:
             model_id, gen_conf = configs
@@ -83,7 +84,7 @@ class AIModels:
                 return ModelExecutor(model_id, gen_conf.copy(), self._ollama_base_url)
         return None
 
-    def get_model(self, model_name: str) -> Optional['ModelExecutor']:
+    def get_model(self, model_name: str) -> Optional["ModelExecutor"]:
         if model_name not in self._models:
             model_instance = self._create_model(model_name)
             if model_instance:
