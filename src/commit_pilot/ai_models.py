@@ -8,9 +8,10 @@ from .utils import load_config
 class ChunkWrapper:
     _is_thinking = False
 
-    def __init__(self, content: str, reasoning: str) -> None:
+    def __init__(self, content: str, reasoning: str, response_metadata: Optional[Dict[str, Any]] = None) -> None:
         self.content = content
         self.reasoning = self._wrap_think_tag(reasoning)
+        self.response_metadata = response_metadata
 
     @classmethod
     def _wrap_think_tag(cls, reasoning: str) -> str:
@@ -25,8 +26,8 @@ class ChunkWrapper:
 
 
 class ModelExecutor:
-    def __init__(self, model_name: str, gen_conf: Dict[str, Any], ollama_base_url: Optional[str] = None) -> None:
-        self.model = model_name
+    def __init__(self, model_id: str, gen_conf: Dict[str, Any], ollama_base_url: Optional[str] = None) -> None:
+        self.model = model_id
         self.gen_conf = gen_conf
         self.api_base = None
         if "ollama" in self.model:
@@ -44,7 +45,8 @@ class ModelExecutor:
             content = getattr(delta, "content")
             content = content if content is not None else ""
             reasoning = getattr(delta, "reasoning_content", "")
-            yield ChunkWrapper(content, reasoning=reasoning)
+            model_id = getattr(chunk, "model", "")
+            yield ChunkWrapper(content, reasoning=reasoning, response_metadata={"model": model_id})
 
     def __setattr__(self, name: str, value: Any) -> None:
         if name in ["model", "gen_conf", "api_base"]:
@@ -74,7 +76,7 @@ class AIModels:
         generate_conf = self._default_gen_configs
         if not model_conf or not generate_conf:
             return None
-        return model_conf.get("model"), generate_conf
+        return model_conf.get("model_id"), generate_conf
 
     def _create_model(self, model_name: str) -> Optional["ModelExecutor"]:
         configs = self._get_all_configs(model_name)
