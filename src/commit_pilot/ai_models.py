@@ -17,7 +17,7 @@ class ChunkWrapper:
     def _wrap_think_tag(cls, reasoning: str) -> str:
         output = reasoning
         if reasoning and not cls._is_thinking:
-            output = "\n<think>" + reasoning
+            output = "\n<think>\n" + reasoning
             cls._is_thinking = True
         if not reasoning and cls._is_thinking:
             output = "\n</think>\n\n"
