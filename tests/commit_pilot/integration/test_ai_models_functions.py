@@ -1,6 +1,7 @@
 import pytest
 
 from src.commit_pilot.ai_models import AIModels
+from src.commit_pilot.utils import load_config
 
 
 @pytest.fixture
@@ -9,27 +10,42 @@ def ai_models():
     yield AIModels()
 
 
+@pytest.fixture
+def model_name():
+    """Fixture to provide a model name for testing."""
+    return load_config("job.conf").get("used_model", "ollama-qwen3:4b")
+
+
+@pytest.fixture
+def expected_model_id(model_name):
+    """Fixture to provide the expected model name for testing."""
+    model_id = load_config("model.conf").as_plain_ordered_dict().get("model_configs", {}).get(model_name, {}).get("model_id", model_name)
+    post_processed_model_id = model_id.replace("ollama/", "")
+    return post_processed_model_id
+
+
 @pytest.mark.parametrize(
-    "model_name, expected_model_name",
-    [
-        ("ollama-qwen3:0.6b", "qwen3:0.6b"),
+    argnames=["model_name", "expected_model_id"],
+    argvalues=[
+        ("default_model_name", "default_model_id"),  # Replace with actual default values
     ],
+    indirect=["model_name", "expected_model_id"],
 )
-def test_ollama_model_streaming(ai_models, model_name, expected_model_name):
+def test_ollama_model_streaming(ai_models, model_name, expected_model_id):
     """
     Test that we can get an ollama model and stream from it.
     """
     llm_ollama = ai_models.get_model(model_name)
-    prompt = "hello, who are you"
+    prompt = [{"role": "user", "content": "hello, who are you"}]
     response_chunks = list(llm_ollama.stream(prompt))
     response_string = " ".join([c.content for c in response_chunks])
     print(f"Response from {model_name}:\n{response_string}")
     # Check that the response chunks are as expected
     assert response_string != "" and response_string.isspace() is False
-    assert response_chunks[-1].response_metadata.get("model") == expected_model_name
+    assert response_chunks[-1].response_metadata.get("model") == expected_model_id
 
 
-@pytest.mark.skip(reason="Skipping gpt-oss-20b too heavy for test")
+@pytest.mark.skip(reason="Skipping huggingface model is not ready")
 def test_huggingface_model_streaming(ai_models):
     """
     Test that we can get a huggingface model and stream from it.
