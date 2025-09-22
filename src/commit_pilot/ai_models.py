@@ -26,17 +26,14 @@ class ChunkWrapper:
 
 
 class ModelExecutor:
-    def __init__(self, model_id: str, gen_conf: Dict[str, Any], ollama_base_url: Optional[str] = None) -> None:
+    def __init__(self, model_id: str, gen_conf: Dict[str, Any], api_base_url: str) -> None:
         self.model = model_id
         self.gen_conf = gen_conf
-        self.api_base = None
-        if "ollama" in self.model:
-            self.api_base = ollama_base_url
+        self.api_base = api_base_url
 
     def stream(self, messages: Annotated[List[Dict[str, str]], 'Example: [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]']) -> Generator["ChunkWrapper", None, None]:
         params = self.gen_conf.copy()
-        if self.api_base:
-            params["api_base"] = self.api_base
+        params["api_base"] = self.api_base
 
         response = litellm.completion(model=self.model, messages=messages, **params)
 
@@ -63,10 +60,10 @@ class AIModels:
         if cls._instance is not None:
             return cls._instance
         conf = load_config("model.conf")
-        ollama_base_url = conf.get("ollama_base_url")
+        cls._ollama_base_url = conf.get("ollama_base_url")
+        cls._other_base_url = conf.get("other_base_url", None)
         cls._instance = super(AIModels, cls).__new__(cls)
         cls._instance._models = {}
-        cls._instance._ollama_base_url = ollama_base_url
         cls._instance._model_configs = conf.get_config("model_configs").as_plain_ordered_dict()
         cls._instance._default_gen_configs = conf.get_config("default_gen_configs").as_plain_ordered_dict()
         return cls._instance
@@ -80,10 +77,11 @@ class AIModels:
 
     def _create_model(self, model_name: str) -> Optional["ModelExecutor"]:
         configs = self._get_all_configs(model_name)
+        self._api_base_url = self._ollama_base_url if model_name.startswith("ollama") else self._other_base_url
         if configs:
             model_id, gen_conf = configs
             if model_id:
-                return ModelExecutor(model_id, gen_conf.copy(), self._ollama_base_url)
+                return ModelExecutor(model_id, gen_conf.copy(), self._api_base_url)
         return None
 
     def get_model(self, model_name: str) -> Optional["ModelExecutor"]:
