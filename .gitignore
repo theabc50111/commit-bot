@@ -20,3 +20,6 @@ dist/
 
 # dev
 exploration/
+
+# models
+model_weights/
