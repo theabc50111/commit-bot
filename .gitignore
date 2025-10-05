@@ -23,3 +23,6 @@ exploration/
 
 # models
 model_weights/
+
+# Logs
+*.log
