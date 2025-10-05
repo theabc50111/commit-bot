@@ -63,7 +63,7 @@ VLLM_PORT="8000"
 VLLM_METRICS_URL="${VLLM_HOST}:${VLLM_PORT}/metrics"
 
 # Set the number of consecutive minutes without a request before shutdown.
-IDLE_TIMEOUT_MINUTES=5
+IDLE_TIMEOUT_MINUTES=3
 
 # The command to start the VLLM server.
 # Using an array ensures arguments with spaces are handled correctly.
@@ -172,7 +172,8 @@ echo "Starting VLLM server..."
 nohup "${VLLM_START_CMD[@]}" > vllm_server.log 2>&1 &
 
 echo "VLLM server started in the background with PID: $!, but it need some warming up time" 
-count_down_seconds 60
+# The waming up time should be longer than 30 seconds.
+count_down_seconds 40
 echo "VLLM server logs are being written to vllm_server.log"
 
 
