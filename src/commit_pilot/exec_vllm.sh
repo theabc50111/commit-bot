@@ -6,8 +6,8 @@
 # --- Argument Handling with getopt ---
 
 # Define short and long options
-SHORT_OPTS="p:n:"
-LONG_OPTS="model-path:,model-name:"
+SHORT_OPTS="p:n:w:"
+LONG_OPTS="model-path:,model-name:, warm-up-sec:"
 
 # Parse the options using getopt
 PARSED=$(getopt --options "$SHORT_OPTS" --long "$LONG_OPTS" --name "$0" -- "$@")
@@ -35,6 +35,10 @@ while true; do
             model_name="$2"
             shift 2 # past argument and value
             ;;
+        -w|--warm-up-sec)
+            warm_up_sec="$2"
+            shift 2 # past argument and value
+            ;;
         --)
             shift
             break
@@ -47,11 +51,11 @@ while true; do
 done
 
 # Check if required arguments were provided
-if [ -z "$model_path" ] || [ -z "$model_name" ]; then
-    echo "Usage: $0 --model-path <path_or_id> --model-name <api_name>"
-    echo "   or: $0 -p <path_or_id> -n <api_name>"
+if [ -z "$model_path" ] || [ -z "$model_name" ] || [ -z "$warm_up_sec" ]; then
+    echo "Usage: $0 --model-path <path_or_id> --model-name <api_name> --warm-up-sec <seconds>"
+    echo "   or: $0 -p <path_or_id> -n <api_name> -w <seconds>"
     echo ""
-    echo "Both --model-path (-p) and --model-name (-n) are required."
+    echo "--model-path (-p), --model-name (-n) and --warm-up-sec (-w) are required."
     exit 1
 fi
 
@@ -173,7 +177,7 @@ nohup "${VLLM_START_CMD[@]}" > vllm_server.log 2>&1 &
 
 echo "VLLM server started in the background with PID: $!, but it need some warming up time" 
 # The waming up time should be longer than 30 seconds.
-count_down_seconds 40
+count_down_seconds ${warm_up_sec}
 echo "VLLM server logs are being written to vllm_server.log"
 
 

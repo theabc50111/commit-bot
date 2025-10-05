@@ -54,17 +54,18 @@ class ModelExecutor:
             logging.info("VLLM model detected, attempting to start VLLM server...")
             # model id is expected to be in the format "vllm/<model_name>" and model_name is what we pass to the script.
             model_name = self.model.split("/")[-1]
+            warm_up_sec = load_config("job.conf").get("warm_up_seconds", 40)
 
-            start_cmd = f"src/commit_pilot/exec_vllm.sh --model-path src/commit_pilot/model_weights/{model_name} --model-name {model_name}"
+            start_cmd = f"src/commit_pilot/exec_vllm.sh --model-path src/commit_pilot/model_weights/{model_name} --model-name {model_name} --warm-up-sec {warm_up_sec}"
             command = shlex.split(start_cmd)
 
             try:
                 with open("exec_vllm.log", "a") as log_file:
-                    # If vllm server is already running, this will stop silently. If not, it will start the server.
+                    # If vllm server is already running, `exec_vllm.sh` will automatically stop. If not, it will start the server.
                     proc = subprocess.Popen(command, stdout=log_file, stderr=subprocess.STDOUT)
                     time.sleep(1)  # Give it a moment to stop proc, when vllm server is already running
                 if proc.poll() is None:
-                    count_down(45)  # Wait a moment for warm-up of the server
+                    count_down(warm_up_sec + 5)  # Wait a moment for warm-up of the server
                 logging.info(f"VLLM server process started for model {model_name}. Logs are in exec_vllm.log")
             except FileNotFoundError:
                 logging.error("Error: The script 'src/commit_pilot/exec_vllm.sh' was not found." "Please ensure the script is in the correct path and has execution permissions.")
