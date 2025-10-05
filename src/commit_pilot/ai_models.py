@@ -11,7 +11,7 @@ from .utils import load_config
 
 def count_down(seconds: int) -> None:
     for i in range(seconds, 0, -1):
-        print(f"⏳ Waiting for {i:3d} seconds...", end="\r")
+        print(f"⌛ Waiting for {i:3d} seconds...", end="\r")
         time.sleep(1)
     print(" " * 30, end="\r")  # Clear the line after countdown
 
