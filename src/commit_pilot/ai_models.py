@@ -9,6 +9,13 @@ import litellm
 from .utils import load_config
 
 
+def count_down(seconds: int) -> None:
+    for i in range(seconds, 0, -1):
+        print(f"⏳ Waiting for {i:3d} seconds...", end="\r")
+        time.sleep(1)
+    print(" " * 30, end="\r")  # Clear the line after countdown
+
+
 class ChunkWrapper:
     _is_thinking = False
 
@@ -45,8 +52,7 @@ class ModelExecutor:
     def _start_vllm_server(self) -> None:
         if self.server_type == "vllm":
             logging.info("VLLM model detected, attempting to start VLLM server...")
-            # model id is expected to be in the format "vllm/<model_name>"
-            # and model_name is what we pass to the script.
+            # model id is expected to be in the format "vllm/<model_name>" and model_name is what we pass to the script.
             model_name = self.model.split("/")[-1]
 
             start_cmd = f"src/commit_pilot/exec_vllm.sh --model-path src/commit_pilot/model_weights/{model_name} --model-name {model_name}"
@@ -54,10 +60,11 @@ class ModelExecutor:
 
             try:
                 with open("exec_vllm.log", "a") as log_file:
+                    # If vllm server is already running, this will stop silently. If not, it will start the server.
                     proc = subprocess.Popen(command, stdout=log_file, stderr=subprocess.STDOUT)
-                    time.sleep(1)
+                    time.sleep(1)  # Give it a moment to stop proc, when vllm server is already running
                 if proc.poll() is None:
-                    time.sleep(45)  # Wait a moment to allow the server to start
+                    count_down(45)  # Wait a moment for warm-up of the server
                 logging.info(f"VLLM server process started for model {model_name}. Logs are in exec_vllm.log")
             except FileNotFoundError:
                 logging.error("Error: The script 'src/commit_pilot/exec_vllm.sh' was not found." "Please ensure the script is in the correct path and has execution permissions.")
