@@ -14,25 +14,13 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "pyhocon",
-    "langchain==0.3.27",
-    "langchain-core==0.3.74",
-    "langchain-text-splitters==0.3.9",
-    "langchain-anthropic==0.3.18",
-    "langchain-google-genai==2.1.9",
-    "langchain-openai==0.3.29",
-    "langchain-huggingface==0.3.1",
-    "sentencepiece==0.2.0",
-    "torch==2.8.0",
-    "transformers==4.55.0",
-    "langchain-community==0.3.27",
-    "accelerate==1.10.0",
+    "pyhocon==0.3.61",
     "litellm==1.76.3",
+    "vllm==0.10.2",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pandas",
     "pytest",
     "pytest-cov",
     "jupyterlab",
