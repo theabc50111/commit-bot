@@ -9,6 +9,8 @@ import litellm
 
 from .utils import load_config
 
+THIS_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 def count_down(seconds: int) -> None:
     for i in range(seconds, 0, -1):
@@ -51,16 +53,17 @@ class ModelExecutor:
             self.api_key = "mock_api_key"
             self.warm_up_sec = load_config("job.conf").get("server_warm_up_seconds", 40)
             self.idle_min = load_config("job.conf").get("server_idle_timeout_minutes", 3)
+            # self.model_weights_path = load_config("job.conf").get("model_weights_path", os.path.join(THIS_SCRIPT_DIR, f"model_weights/{self.model.split('/')[-1]}"))
+            self.model_weights_path = load_config("job.conf").get("model_weights_path")
 
     def _start_vllm_server(self) -> None:
         if self.server_type == "vllm":
-            this_script_dir = os.path.dirname(os.path.abspath(__file__))
-            exec_vllm_path = os.path.join(this_script_dir, "exec_vllm.sh")
+            exec_vllm_path = os.path.join(THIS_SCRIPT_DIR, "exec_vllm.sh")
             logging.info("VLLM model detected, attempting to start VLLM server...")
             # model id is expected to be in the format "vllm/<model_name>" and model_name is what we pass to the script.
             model_name = self.model.split("/")[-1]
 
-            start_cmd = f"{exec_vllm_path} --model-path src/commit_pilot/model_weights/{model_name} --model-name {model_name} --warm-up-sec {self.warm_up_sec} --idle-timeout-min {self.idle_min}"
+            start_cmd = f"{exec_vllm_path} --model-path {self.model_weights_path} --model-name {model_name} --warm-up-sec {self.warm_up_sec} --idle-timeout-min {self.idle_min}"
             command = shlex.split(start_cmd)
 
             try:
@@ -97,7 +100,7 @@ class ModelExecutor:
             yield ChunkWrapper(content, reasoning=reasoning, response_metadata={"model": model_id})
 
     def __setattr__(self, name: str, value: Any) -> None:
-        if name in ["model", "gen_conf", "server_type", "warm_up_sec", "idle_min"]:
+        if name in ["model", "gen_conf", "server_type", "warm_up_sec", "idle_min", "model_weights_path"]:
             super().__setattr__(name, value)
         else:
             self.gen_conf[name] = value
