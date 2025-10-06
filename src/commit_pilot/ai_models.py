@@ -1,4 +1,3 @@
-import logging
 import os
 import shlex
 import subprocess
@@ -58,8 +57,7 @@ class ModelExecutor:
     def _start_vllm_server(self) -> None:
         if self.server_type == "vllm":
             exec_vllm_path = os.path.join(THIS_SCRIPT_DIR, "exec_vllm.sh")
-            logging.info("VLLM model detected, attempting to start VLLM server...")
-            # model id is expected to be in the format "vllm/<model_name>" and model_name is what we pass to the script.
+            # The expected format for the model id is “vllm/<model name>”, where the model_name corresponds to the parameter we pass to the script.
             model_name = self.model.split("/")[-1]
 
             start_cmd = f"{exec_vllm_path} --model-path {self.vllm_model_weights_path} --model-name {model_name} --warm-up-sec {self.warm_up_sec} --idle-timeout-min {self.idle_min}"
@@ -77,11 +75,10 @@ class ModelExecutor:
                     print("🗄️ You can check the logs in exec_vllm.log")
                     print(f"🗄️ Waiting for warm-up..., please wait for about {self.warm_up_sec+5} seconds")
                     count_down(self.warm_up_sec + 5)  # Wait a moment for warm-up of the server
-                logging.info(f"VLLM server process started for model {model_name}. Logs are in exec_vllm.log")
             except FileNotFoundError:
-                logging.error("Error: The script 'src/commit_pilot/exec_vllm.sh' was not found." "Please ensure the script is in the correct path and has execution permissions.")
+                print(f"❌ Error: {exec_vllm_path} was not found. Please ensure the script is in the correct path and has execution permissions.")
             except Exception as e:
-                logging.error(f"An unexpected error occurred while starting the VLLM server: {e}")
+                print(f"❌ An unexpected error occurred while starting the VLLM server: {e}")
 
     def stream(self, messages: Annotated[List[Dict[str, str]], 'Example: [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]']) -> Generator["ChunkWrapper", None, None]:
         self._start_vllm_server()
