@@ -77,6 +77,7 @@ VLLM_START_CMD=(
 "--port" "${VLLM_PORT}"
 "--model" "${model_path}"
 "--served-model-name" "${model_name}"
+"--max-model-len" 58000
 )
 
 # Function to gracefully shut down
