@@ -16,10 +16,10 @@ def load_config(config_file_name: str) -> ConfigFactory:
     Returns:
         ConfigFactory: Parsed configuration object.
     """
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, "conf", config_file_name)
+    this_script_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(this_script_dir, "conf", config_file_name)
     if not os.path.exists(config_path):
-        raise FileNotFoundError(f"Configuration file {config_file_name} not found in {script_dir}/conf")
+        raise FileNotFoundError(f"Configuration file {config_file_name} not found in {this_script_dir}/conf")
 
     return ConfigFactory.parse_file(config_path)
 
