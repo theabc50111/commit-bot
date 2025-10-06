@@ -57,6 +57,7 @@ class ModelExecutor:
     def _start_vllm_server(self) -> None:
         if self.server_type == "vllm":
             exec_vllm_path = os.path.join(THIS_SCRIPT_DIR, "exec_vllm.sh")
+            log_file_path = os.path.join(THIS_SCRIPT_DIR, "var/log/exec_vllm.log")
             # The expected format for the model id is “vllm/<model name>”, where the model_name corresponds to the parameter we pass to the script.
             model_name = self.model.split("/")[-1]
 
@@ -64,7 +65,7 @@ class ModelExecutor:
             command = shlex.split(start_cmd)
 
             try:
-                with open("exec_vllm.log", "a") as log_file:
+                with open(log_file_path, "a") as log_file:
                     # If vllm server is already running, `exec_vllm.sh` will automatically stop. If not, it will start the server.
                     proc = subprocess.Popen(command, stdout=log_file, stderr=subprocess.STDOUT)
                     time.sleep(1)  # Give it a moment to stop proc, when vllm server is already running
