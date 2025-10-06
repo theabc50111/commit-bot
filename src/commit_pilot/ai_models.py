@@ -40,7 +40,7 @@ class ChunkWrapper:
 
 class ModelExecutor:
     def __init__(self, model_id: str, gen_conf: Dict[str, Any], api_base_url: str, server_type: str) -> None:
-        self.model = model_id
+        self.model_id = model_id
         self.gen_conf = gen_conf.copy()
         self.api_base = api_base_url
         self.server_type = server_type
@@ -48,21 +48,20 @@ class ModelExecutor:
     def _set_vllm_settings(self) -> None:
         if self.server_type == "vllm":
             log_dir = os.path.join(THIS_SCRIPT_DIR, "var/logs")
-            self.model = self.model.replace("vllm", "openai")
+            vllm_model_weights_root_dir = load_config("job.conf").get("vllm_model_weights_root_dir", os.path.join(THIS_SCRIPT_DIR, f"model_weights"))
+            self.model_id = self.model_id.replace("vllm", "openai")
+            self.model_name = self.model_id.split("/")[-1]
             self.api_key = "mock_api_key"
             self.warm_up_sec = load_config("job.conf").get("server_warm_up_seconds", 40)
             self.idle_min = load_config("job.conf").get("server_idle_timeout_minutes", 3)
-            self.vllm_model_weights_path = load_config("job.conf").get("vllm_model_weights_path", os.path.join(THIS_SCRIPT_DIR, f"model_weights/{self.model.split('/')[-1]}"))
             self.exec_vllm_path = os.path.join(THIS_SCRIPT_DIR, "exec_vllm.sh")
+            self.vllm_model_weights_path = os.path.join(vllm_model_weights_root_dir, self.model_name)
             self.exec_vllm_log_path = os.path.join(log_dir, "exec_vllm.log")
             self.vllm_server_log_path = os.path.join(log_dir, "vllm_server.log")
 
     def _start_vllm_server(self) -> None:
         if self.server_type == "vllm":
-            # The expected format for the model id is “vllm/<model name>”, where the model_name corresponds to the parameter we pass to the script.
-            model_name = self.model.split("/")[-1]
-
-            start_cmd = f"{self.exec_vllm_path} --model-path {self.vllm_model_weights_path} --model-name {model_name} --warm-up-sec {self.warm_up_sec} --idle-timeout-min {self.idle_min} --server-log-path {self.vllm_server_log_path}"
+            start_cmd = f"{self.exec_vllm_path} --model-path {self.vllm_model_weights_path} --model-name {self.model_name} --warm-up-sec {self.warm_up_sec} --idle-timeout-min {self.idle_min} --server-log-path {self.vllm_server_log_path}"
             command = shlex.split(start_cmd)
 
             try:
@@ -72,7 +71,7 @@ class ModelExecutor:
                     time.sleep(1)  # Give it a moment to stop proc, when vllm server is already running
                 if proc.poll() is None:
                     print(
-                        f"🗄️ First time starting vllm server for model {model_name}, you don't need to start it again for next {self.idle_min} minutes.(Everytime you send a request, the idle timer will reset.)"
+                        f"🗄️ First time starting vllm server for model {self.model_name}, you don't need to start it again for next {self.idle_min} minutes.(Everytime you send a request, the idle timer will reset.)"
                     )
                     print("🗄️ You can check the logs in exec_vllm.log")
                     print(f"🗄️ Waiting for warm-up..., please wait for about {self.warm_up_sec+5} seconds")
@@ -88,7 +87,7 @@ class ModelExecutor:
         params = self.gen_conf
         params["stream"] = True
 
-        response = litellm.completion(model=self.model, messages=messages, **params)
+        response = litellm.completion(model=self.model_id, messages=messages, **params)
 
         for chunk in response:
             delta = chunk.choices[0].delta
@@ -99,8 +98,8 @@ class ModelExecutor:
             yield ChunkWrapper(content, reasoning=reasoning, response_metadata={"model": model_id})
 
     def __setattr__(self, name: str, value: Any) -> None:
-        vllm_settings = ["warm_up_sec", "idle_min", "vllm_model_weights_path", "exec_vllm_path", "exec_vllm_log_path", "vllm_server_log_path"]
-        if name in ["model", "gen_conf", "server_type"] + vllm_settings:
+        vllm_settings = ["model_name", "warm_up_sec", "idle_min", "vllm_model_weights_path", "exec_vllm_path", "exec_vllm_log_path", "vllm_server_log_path"]
+        if name in ["model_id", "gen_conf", "server_type"] + vllm_settings:
             super().__setattr__(name, value)
         else:
             self.gen_conf[name] = value
@@ -122,17 +121,17 @@ class AIModels:
         cls._instance._default_gen_configs = conf.get_config("default_gen_configs").as_plain_ordered_dict()
         return cls._instance
 
-    def _get_all_configs(self, model_name: str) -> Optional[Tuple[Optional[str], Dict[str, Any]]]:
-        model_conf = self._model_configs.get(model_name)
+    def _get_all_configs(self, model_spec: str) -> Optional[Tuple[Optional[str], Dict[str, Any]]]:
+        model_conf = self._model_configs.get(model_spec)
         generate_conf = self._default_gen_configs
         if not model_conf or not generate_conf:
             return None
         return model_conf, generate_conf
 
-    def _create_model(self, model_name: str) -> ModelExecutor:
-        configs = self._get_all_configs(model_name)
+    def _create_model(self, model_spec: str) -> ModelExecutor:
+        configs = self._get_all_configs(model_spec)
         if not configs:
-            raise UserWarning(f"{model_name} is not in the support list, you can watch it in model.conf")
+            raise UserWarning(f"{model_spec} is not in the support list, you can watch it in model.conf")
         model_conf, gen_conf = configs
         model_id, model_server = model_conf["model_id"], model_conf["server_type"]
         if model_server == "ollama":
@@ -144,14 +143,14 @@ class AIModels:
 
         return ModelExecutor(model_id, gen_conf, self._api_base_url, model_server)
 
-    def get_model(self, model_name: str) -> Optional["ModelExecutor"]:
-        if model_name not in self._models:
-            model_instance = self._create_model(model_name)
+    def get_model(self, model_spec: str) -> Optional["ModelExecutor"]:
+        if model_spec not in self._models:
+            model_instance = self._create_model(model_spec)
             if model_instance:
-                self._models[model_name] = model_instance
+                self._models[model_spec] = model_instance
             else:
                 return None
-        return self._models.get(model_name)
+        return self._models.get(model_spec)
 
     def list_available_models(self) -> List[str]:
         return list(self._model_configs.keys())

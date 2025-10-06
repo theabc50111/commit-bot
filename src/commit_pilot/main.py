@@ -17,17 +17,17 @@ commands = {
     "get_stashed_changes": "git diff --cached",
 }
 
-MODEL_NAME = load_config("job.conf")["used_model"]
+MODEL_SPEC = load_config("job.conf")["used_model"]
 
 
 def generate_commit_message(staged_changes: str, random_regen: bool = False) -> str:
     """Generates a commit message using the specified AI model."""
     try:
-        global MODEL_NAME
+        global MODEL_SPEC
         ai_models = AIModels()
-        model = ai_models.get_model(MODEL_NAME)
+        model = ai_models.get_model(MODEL_SPEC)
         if not model:
-            raise ValueError(f"Model '{MODEL_NAME}' is not available.")
+            raise ValueError(f"Model '{MODEL_SPEC}' is not available.")
 
         if random_regen:
             new_sys_ppt, new_model_gen_conf = get_conf_regen_commit_msg()
@@ -49,7 +49,7 @@ def generate_commit_message(staged_changes: str, random_regen: bool = False) -> 
                 },
             ]
         )
-        print(f"🧠 Generating commit message using model '{MODEL_NAME}'...\n")
+        print(f"🧠 Generating commit message using model '{MODEL_SPEC}'...\n")
         commit_message = ""
         for chunk in response_chunks:
             commit_message += chunk.content
@@ -106,7 +106,7 @@ def show_commit_diff() -> None:
 
 def interaction_loop():
     """Handles user interaction for commit message generation."""
-    global MODEL_NAME
+    global MODEL_SPEC
     staged_changes = run_command(commands["get_stashed_changes"]).strip()
     if not staged_changes:
         print("🔎 No staged changes found.")
@@ -131,11 +131,11 @@ def interaction_loop():
             case "m" | "model":
                 subprocess.run(commands["clear_screen"])
                 valid_models = AIModels().list_available_models()
-                print(f"Current model: {MODEL_NAME}")
-                new_model = input(f"Enter new model name (or press Enter to keep current):\nAvailable models: {', '.join(valid_models)}\n>>> ")
-                if new_model in valid_models:
-                    MODEL_NAME = new_model
-                    print(f"Model changed to: {MODEL_NAME}")
+                print(f"Current model: {MODEL_SPEC}")
+                new_model_spec = input(f"Enter new model name (or press Enter to keep current):\nAvailable models: {', '.join(valid_models)}\n>>> ")
+                if new_model_spec in valid_models:
+                    MODEL_SPEC = new_model_spec
+                    print(f"Model changed to: {MODEL_SPEC}")
                 else:
                     print("Model unchanged.")
             case "y" | "yes":
