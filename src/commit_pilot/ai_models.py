@@ -42,21 +42,24 @@ class ModelExecutor:
         self.gen_conf = gen_conf.copy()
         self.api_base = api_base_url
         self.server_type = server_type
-        self._set_vllm_settings()
 
     def _set_vllm_settings(self) -> None:
         if self.server_type == "vllm":
             self.model = self.model.replace("vllm", "openai")
             self.api_key = "mock_api_key"
+            self.warm_up_sec = load_config("job.conf").get("server_warm_up_seconds", 40)
+            self.idle_min = load_config("job.conf").get("server_idle_timeout_minutes", 3)
 
     def _start_vllm_server(self) -> None:
         if self.server_type == "vllm":
+            self._set_vllm_settings()
             logging.info("VLLM model detected, attempting to start VLLM server...")
             # model id is expected to be in the format "vllm/<model_name>" and model_name is what we pass to the script.
             model_name = self.model.split("/")[-1]
-            warm_up_sec = load_config("job.conf").get("warm_up_seconds", 40)
 
-            start_cmd = f"src/commit_pilot/exec_vllm.sh --model-path src/commit_pilot/model_weights/{model_name} --model-name {model_name} --warm-up-sec {warm_up_sec}"
+            start_cmd = (
+                f"src/commit_pilot/exec_vllm.sh --model-path src/commit_pilot/model_weights/{model_name} --model-name {model_name} --warm-up-sec {self.warm_up_sec} --idle-timeout-min {self.idle_min}"
+            )
             command = shlex.split(start_cmd)
 
             try:
@@ -65,7 +68,12 @@ class ModelExecutor:
                     proc = subprocess.Popen(command, stdout=log_file, stderr=subprocess.STDOUT)
                     time.sleep(1)  # Give it a moment to stop proc, when vllm server is already running
                 if proc.poll() is None:
-                    count_down(warm_up_sec + 5)  # Wait a moment for warm-up of the server
+                    print(
+                        f"First time starting vllm server for model {model_name}, you don't need to start it again for next {self.idle_min} minutes.(Everytime you send a request, the idle timer will reset.)"
+                    )
+                    print("You can check the logs in exec_vllm.log")
+                    print(f"Waiting for warm-up..., please wait for about {self.warm_up_sec+5} seconds")
+                    count_down(self.warm_up_sec + 5)  # Wait a moment for warm-up of the server
                 logging.info(f"VLLM server process started for model {model_name}. Logs are in exec_vllm.log")
             except FileNotFoundError:
                 logging.error("Error: The script 'src/commit_pilot/exec_vllm.sh' was not found." "Please ensure the script is in the correct path and has execution permissions.")
@@ -75,7 +83,6 @@ class ModelExecutor:
     def stream(self, messages: Annotated[List[Dict[str, str]], 'Example: [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]']) -> Generator["ChunkWrapper", None, None]:
         self._start_vllm_server()
         params = self.gen_conf
-        params["api_base"] = self.api_base
         params["stream"] = True
 
         response = litellm.completion(model=self.model, messages=messages, **params)
@@ -89,7 +96,7 @@ class ModelExecutor:
             yield ChunkWrapper(content, reasoning=reasoning, response_metadata={"model": model_id})
 
     def __setattr__(self, name: str, value: Any) -> None:
-        if name in ["model", "gen_conf", "api_base", "server_type"]:
+        if name in ["model", "gen_conf", "server_type", "warm_up_sec", "idle_min"]:
             super().__setattr__(name, value)
         else:
             self.gen_conf[name] = value
