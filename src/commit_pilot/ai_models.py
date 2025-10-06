@@ -44,30 +44,29 @@ class ModelExecutor:
         self.gen_conf = gen_conf.copy()
         self.api_base = api_base_url
         self.server_type = server_type
-        self._set_vllm_settings()
 
     def _set_vllm_settings(self) -> None:
         if self.server_type == "vllm":
+            log_dir = os.path.join(THIS_SCRIPT_DIR, "var/logs")
             self.model = self.model.replace("vllm", "openai")
             self.api_key = "mock_api_key"
             self.warm_up_sec = load_config("job.conf").get("server_warm_up_seconds", 40)
             self.idle_min = load_config("job.conf").get("server_idle_timeout_minutes", 3)
             self.vllm_model_weights_path = load_config("job.conf").get("vllm_model_weights_path", os.path.join(THIS_SCRIPT_DIR, f"model_weights/{self.model.split('/')[-1]}"))
+            self.exec_vllm_path = os.path.join(THIS_SCRIPT_DIR, "exec_vllm.sh")
+            self.exec_vllm_log_path = os.path.join(log_dir, "exec_vllm.log")
+            self.vllm_server_log_path = os.path.join(log_dir, "vllm_server.log")
 
     def _start_vllm_server(self) -> None:
         if self.server_type == "vllm":
-            exec_vllm_path = os.path.join(THIS_SCRIPT_DIR, "exec_vllm.sh")
-            log_dir = os.path.join(THIS_SCRIPT_DIR, "var/logs")
-            exec_vllm_log_path = os.path.join(log_dir, "exec_vllm.log")
-            vllm_server_log_path = os.path.join(log_dir, "vllm_server.log")
             # The expected format for the model id is “vllm/<model name>”, where the model_name corresponds to the parameter we pass to the script.
             model_name = self.model.split("/")[-1]
 
-            start_cmd = f"{exec_vllm_path} --model-path {self.vllm_model_weights_path} --model-name {model_name} --warm-up-sec {self.warm_up_sec} --idle-timeout-min {self.idle_min} --server-log-path {vllm_server_log_path}"
+            start_cmd = f"{self.exec_vllm_path} --model-path {self.vllm_model_weights_path} --model-name {model_name} --warm-up-sec {self.warm_up_sec} --idle-timeout-min {self.idle_min} --server-log-path {self.vllm_server_log_path}"
             command = shlex.split(start_cmd)
 
             try:
-                with open(exec_vllm_log_path, "w") as log_file:
+                with open(self.exec_vllm_log_path, "w") as log_file:
                     # If vllm server is already running, `exec_vllm.sh` will automatically stop. If not, it will start the server.
                     proc = subprocess.Popen(command, stdout=log_file, stderr=subprocess.STDOUT)
                     time.sleep(1)  # Give it a moment to stop proc, when vllm server is already running
@@ -84,6 +83,7 @@ class ModelExecutor:
                 print(f"❌ An unexpected error occurred while starting the VLLM server: {e}")
 
     def stream(self, messages: Annotated[List[Dict[str, str]], 'Example: [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]']) -> Generator["ChunkWrapper", None, None]:
+        self._set_vllm_settings()
         self._start_vllm_server()
         params = self.gen_conf
         params["stream"] = True
@@ -99,7 +99,8 @@ class ModelExecutor:
             yield ChunkWrapper(content, reasoning=reasoning, response_metadata={"model": model_id})
 
     def __setattr__(self, name: str, value: Any) -> None:
-        if name in ["model", "gen_conf", "server_type", "warm_up_sec", "idle_min", "vllm_model_weights_path"]:
+        vllm_settings = ["warm_up_sec", "idle_min", "vllm_model_weights_path", "exec_vllm_path", "exec_vllm_log_path", "vllm_server_log_path"]
+        if name in ["model", "gen_conf", "server_type"] + vllm_settings:
             super().__setattr__(name, value)
         else:
             self.gen_conf[name] = value
