@@ -1,4 +1,5 @@
 import logging
+import os
 import shlex
 import subprocess
 import time
@@ -42,6 +43,7 @@ class ModelExecutor:
         self.gen_conf = gen_conf.copy()
         self.api_base = api_base_url
         self.server_type = server_type
+        self._set_vllm_settings()
 
     def _set_vllm_settings(self) -> None:
         if self.server_type == "vllm":
@@ -52,14 +54,13 @@ class ModelExecutor:
 
     def _start_vllm_server(self) -> None:
         if self.server_type == "vllm":
-            self._set_vllm_settings()
+            this_script_dir = os.path.dirname(os.path.abspath(__file__))
+            exec_vllm_path = os.path.join(this_script_dir, "exec_vllm.sh")
             logging.info("VLLM model detected, attempting to start VLLM server...")
             # model id is expected to be in the format "vllm/<model_name>" and model_name is what we pass to the script.
             model_name = self.model.split("/")[-1]
 
-            start_cmd = (
-                f"src/commit_pilot/exec_vllm.sh --model-path src/commit_pilot/model_weights/{model_name} --model-name {model_name} --warm-up-sec {self.warm_up_sec} --idle-timeout-min {self.idle_min}"
-            )
+            start_cmd = f"{exec_vllm_path} --model-path src/commit_pilot/model_weights/{model_name} --model-name {model_name} --warm-up-sec {self.warm_up_sec} --idle-timeout-min {self.idle_min}"
             command = shlex.split(start_cmd)
 
             try:
