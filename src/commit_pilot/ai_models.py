@@ -69,10 +69,10 @@ class ModelExecutor:
                     time.sleep(1)  # Give it a moment to stop proc, when vllm server is already running
                 if proc.poll() is None:
                     print(
-                        f"First time starting vllm server for model {model_name}, you don't need to start it again for next {self.idle_min} minutes.(Everytime you send a request, the idle timer will reset.)"
+                        f"🗄️ First time starting vllm server for model {model_name}, you don't need to start it again for next {self.idle_min} minutes.(Everytime you send a request, the idle timer will reset.)"
                     )
-                    print("You can check the logs in exec_vllm.log")
-                    print(f"Waiting for warm-up..., please wait for about {self.warm_up_sec+5} seconds")
+                    print("🗄️ You can check the logs in exec_vllm.log")
+                    print(f"🗄️ Waiting for warm-up..., please wait for about {self.warm_up_sec+5} seconds")
                     count_down(self.warm_up_sec + 5)  # Wait a moment for warm-up of the server
                 logging.info(f"VLLM server process started for model {model_name}. Logs are in exec_vllm.log")
             except FileNotFoundError:
