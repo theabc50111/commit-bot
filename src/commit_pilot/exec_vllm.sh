@@ -6,8 +6,8 @@
 # --- Argument Handling with getopt ---
 
 # Define short and long options
-SHORT_OPTS="p:n:w:"
-LONG_OPTS="model-path:,model-name:, warm-up-sec:"
+SHORT_OPTS="p:n:w:i:"
+LONG_OPTS="model-path:,model-name:, warm-up-sec:, idle-timeout-minutes:"
 
 # Parse the options using getopt
 PARSED=$(getopt --options "$SHORT_OPTS" --long "$LONG_OPTS" --name "$0" -- "$@")
@@ -39,6 +39,10 @@ while true; do
             warm_up_sec="$2"
             shift 2 # past argument and value
             ;;
+        -i|--idle-timeout-minutes)
+            idle_timeout_minutes="$2"
+            shift 2 # past argument and value
+            ;;
         --)
             shift
             break
@@ -52,10 +56,10 @@ done
 
 # Check if required arguments were provided
 if [ -z "$model_path" ] || [ -z "$model_name" ] || [ -z "$warm_up_sec" ]; then
-    echo "Usage: $0 --model-path <path_or_id> --model-name <api_name> --warm-up-sec <seconds>"
-    echo "   or: $0 -p <path_or_id> -n <api_name> -w <seconds>"
+    echo "Usage: $0 --model-path <path_or_id> --model-name <api_name> --warm-up-sec <seconds> --idle-timeout-minutes <minutes>"
+    echo "   or: $0 -p <path_or_id> -n <api_name> -w <seconds> -i <minutes>"
     echo ""
-    echo "--model-path (-p), --model-name (-n) and --warm-up-sec (-w) are required."
+    echo "--model-path (-p), --model-name (-n), --warm-up-sec (-w) and --idle-timeout-minutes (-i) are required."
     exit 1
 fi
 
@@ -65,9 +69,6 @@ fi
 VLLM_HOST="http://localhost"
 VLLM_PORT="8000"
 VLLM_METRICS_URL="${VLLM_HOST}:${VLLM_PORT}/metrics"
-
-# Set the number of consecutive minutes without a request before shutdown.
-IDLE_TIMEOUT_MINUTES=3
 
 # The command to start the VLLM server.
 # Using an array ensures arguments with spaces are handled correctly.
@@ -107,7 +108,7 @@ graceful_shutdown_vllm() {
 monitor_and_shutdown_vllm() {
     # Function to monitor the server for idle time and shut it down.
     # Counter for consecutive idle minutes
-    IDLE_MINUTES=0
+    consecutive_idle_minutes=0
     echo "Starting VLLM idle timeout monitor..."
 
     while true; do
@@ -125,16 +126,16 @@ monitor_and_shutdown_vllm() {
 
         # Check if any requests are running
         if [ "$RUNNING_REQUESTS" -eq 0 ]; then
-            IDLE_MINUTES=$((IDLE_MINUTES + 1))
-            echo "No active requests. Idle for ${IDLE_MINUTES} of ${IDLE_TIMEOUT_MINUTES} minutes."
+            consecutive_idle_minutes=$((consecutive_idle_minutes + 1))
+            echo "No active requests. Idle for ${consecutive_idle_minutes} of ${idle_timeout_minutes} minutes."
         else
-            IDLE_MINUTES=0
+            consecutive_idle_minutes=0
             echo "Active requests found. Resetting idle timer."
         fi
 
         # If idle timeout is reached, shut down the server
-        if [ "$IDLE_MINUTES" -ge "$IDLE_TIMEOUT_MINUTES" ]; then
-            echo "Server idle for ${IDLE_TIMEOUT_MINUTES} minutes. Shutting down VLLM."
+        if [ "$consecutive_idle_minutes" -ge "$idle_timeout_minutes" ]; then
+            echo "Server idle for ${idle_timeout_minutes} minutes. Shutting down VLLM."
             graceful_shutdown_vllm
             exit 0
         fi
@@ -185,4 +186,4 @@ echo "VLLM server logs are being written to vllm_server.log"
 echo "Starting idle timeout monitor for VLLM server..."
 monitor_and_shutdown_vllm &
 
-echo "$0 has completed. The server will automatically shut down after being idle for ${IDLE_TIMEOUT_MINUTES} minutes."
+echo "$0 has completed. The server will automatically shut down after being idle for ${idle_timeout_minutes} minutes."
