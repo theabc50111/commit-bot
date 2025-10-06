@@ -6,8 +6,8 @@
 # --- Argument Handling with getopt ---
 
 # Define short and long options
-SHORT_OPTS="p:n:w:i:"
-LONG_OPTS="model-path:,model-name:, warm-up-sec:, idle-timeout-minutes:"
+SHORT_OPTS="p:n:w:i:s:"
+LONG_OPTS="model-path:,model-name:, warm-up-sec:, idle-timeout-minutes:, server-log-path:"
 
 # Parse the options using getopt
 PARSED=$(getopt --options "$SHORT_OPTS" --long "$LONG_OPTS" --name "$0" -- "$@")
@@ -43,6 +43,10 @@ while true; do
             idle_timeout_minutes="$2"
             shift 2 # past argument and value
             ;;
+        -s|--server-log-path)
+            server_log_path="$2"
+            shift 2 # past argument and value
+            ;;
         --)
             shift
             break
@@ -55,11 +59,11 @@ while true; do
 done
 
 # Check if required arguments were provided
-if [ -z "$model_path" ] || [ -z "$model_name" ] || [ -z "$warm_up_sec" ]; then
-    echo "Usage: $0 --model-path <path_or_id> --model-name <api_name> --warm-up-sec <seconds> --idle-timeout-minutes <minutes>"
-    echo "   or: $0 -p <path_or_id> -n <api_name> -w <seconds> -i <minutes>"
+if [ -z "$model_path" ] || [ -z "$model_name" ] || [ -z "$warm_up_sec" ] || [ -z "$idle_timeout_minutes" ] || [ -z "$server_log_path" ]; then
+    echo "Usage: $0 --model-path <path> --model-name <api_name> --warm-up-sec <seconds> --idle-timeout-minutes <minutes> --server-log-path <path>"
+    echo "   or: $0 -p <path> -n <api_name> -w <seconds> -i <minutes> -s <path>"
     echo ""
-    echo "--model-path (-p), --model-name (-n), --warm-up-sec (-w) and --idle-timeout-minutes (-i) are required."
+    echo "--model-path (-p), --model-name (-n), --warm-up-sec (-w), --idle-timeout-minutes (-i) and --server-log-path (-s) are required."
     exit 1
 fi
 
@@ -90,7 +94,7 @@ graceful_shutdown_vllm() {
         echo "No VLLM server process found."
     else
         echo "Found VLLM server process with PID: $VLLM_PID"
-        
+
         # Send a graceful termination signal (SIGTERM).
         kill "$VLLM_PID"
 
@@ -174,13 +178,13 @@ check_running_vllm
 echo "Starting VLLM server..."
 
 # Use nohup to run the command in the background, making it immune to terminal closure.
-# The output is redirected to vllm_server.log.
-nohup "${VLLM_START_CMD[@]}" > vllm_server.log 2>&1 &
+# The output is redirected to the specified log file.
+nohup "${VLLM_START_CMD[@]}" > "${server_log_path}" 2>&1 &
 
 echo "VLLM server started in the background with PID: $!, but it need some warming up time" 
 # The waming up time should be longer than 30 seconds.
 count_down_seconds ${warm_up_sec}
-echo "VLLM server logs are being written to vllm_server.log"
+echo "VLLM server logs are being written to ${server_log_path}"
 
 
 # Start the monitor function in a separate background process.
