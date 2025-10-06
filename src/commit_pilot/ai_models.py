@@ -67,7 +67,7 @@ class ModelExecutor:
             command = shlex.split(start_cmd)
 
             try:
-                with open(exec_vllm_log_path, "a") as log_file:
+                with open(exec_vllm_log_path, "w") as log_file:
                     # If vllm server is already running, `exec_vllm.sh` will automatically stop. If not, it will start the server.
                     proc = subprocess.Popen(command, stdout=log_file, stderr=subprocess.STDOUT)
                     time.sleep(1)  # Give it a moment to stop proc, when vllm server is already running
