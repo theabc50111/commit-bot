@@ -57,7 +57,7 @@ class ModelExecutor:
     def _start_vllm_server(self) -> None:
         if self.server_type == "vllm":
             exec_vllm_path = os.path.join(THIS_SCRIPT_DIR, "exec_vllm.sh")
-            log_file_path = os.path.join(THIS_SCRIPT_DIR, "var/log/exec_vllm.log")
+            log_file_path = os.path.join(THIS_SCRIPT_DIR, "var/logs/exec_vllm.log")
             # The expected format for the model id is “vllm/<model name>”, where the model_name corresponds to the parameter we pass to the script.
             model_name = self.model.split("/")[-1]
 
@@ -76,8 +76,8 @@ class ModelExecutor:
                     print("🗄️ You can check the logs in exec_vllm.log")
                     print(f"🗄️ Waiting for warm-up..., please wait for about {self.warm_up_sec+5} seconds")
                     count_down(self.warm_up_sec + 5)  # Wait a moment for warm-up of the server
-            except FileNotFoundError:
-                print(f"❌ Error: {exec_vllm_path} was not found. Please ensure the script is in the correct path and has execution permissions.")
+            except FileNotFoundError as e:
+                print(f"❌ Error: some file is not found, please check the paths. Details: {e}")
             except Exception as e:
                 print(f"❌ An unexpected error occurred while starting the VLLM server: {e}")
 
