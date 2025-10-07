@@ -54,7 +54,7 @@ class ModelExecutor:
             self.api_key = "mock_api_key"
             self.warm_up_sec = load_config("job.conf").get("server_warm_up_seconds", 40)
             self.idle_min = load_config("job.conf").get("server_idle_timeout_minutes", 3)
-            self.exec_vllm_path = os.path.join(THIS_SCRIPT_DIR, "exec_vllm.sh")
+            self.exec_vllm_path = os.path.join(THIS_SCRIPT_DIR, "bin/exec_vllm.sh")
             self.vllm_model_weights_path = os.path.join(vllm_model_weights_root_dir, self.model_name)
             self.exec_vllm_log_path = os.path.join(log_dir, "exec_vllm.log")
             self.vllm_server_log_path = os.path.join(log_dir, "vllm_server.log")
