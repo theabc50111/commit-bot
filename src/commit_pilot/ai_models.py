@@ -48,7 +48,7 @@ class ModelExecutor:
     def _set_vllm_settings(self) -> None:
         if self.server_type == "vllm":
             log_dir = os.path.join(THIS_SCRIPT_DIR, "var/logs")
-            vllm_model_weights_root_dir = load_config("job.conf").get("vllm_model_weights_root_dir", os.path.join(THIS_SCRIPT_DIR, f"model_weights"))
+            vllm_model_weights_root_dir = load_config("job.conf").get("vllm_model_weights_root_dir", os.path.join(THIS_SCRIPT_DIR, "model_weights"))
             self.model_id = self.model_id.replace("vllm", "openai")
             self.model_name = self.model_id.split("/")[-1]
             self.api_key = "mock_api_key"
