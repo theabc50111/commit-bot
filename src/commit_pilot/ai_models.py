@@ -83,6 +83,7 @@ class ModelExecutor:
             command = shlex.split(stop_cmd)
             try:
                 subprocess.run(command, check=True)
+                time.sleep(2)  # Give it a moment to stop the previous server
                 print(f"🛑 Stopped the previous vllm server for model: {prev_model}.")
             except subprocess.CalledProcessError as e:
                 print(f"❌ Failed to stop the previous vllm server. Error: {e}")
