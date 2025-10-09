@@ -5,6 +5,7 @@ import time
 from typing import Annotated, Any, Dict, Generator, List, Optional, Tuple
 
 import litellm
+import requests
 
 from .utils import load_config
 
@@ -55,9 +56,38 @@ class ModelExecutor:
             self.warm_up_sec = load_config("job.conf").get("server_warm_up_seconds", 40)
             self.idle_min = load_config("job.conf").get("server_idle_timeout_minutes", 3)
             self.exec_vllm_path = os.path.join(THIS_SCRIPT_DIR, "bin/exec_vllm.sh")
+            self.stop_vllm_path = os.path.join(THIS_SCRIPT_DIR, "bin/stop_vllm.sh")
             self.vllm_model_weights_path = os.path.join(vllm_model_weights_root_dir, self.model_name)
             self.exec_vllm_log_path = os.path.join(log_dir, "exec_vllm.log")
             self.vllm_server_log_path = os.path.join(log_dir, "vllm_server.log")
+
+    def _check_model_change_and_stop_previous(self) -> None:
+        try:
+            res = requests.get(f"{self.gen_conf['api_base']}/models")
+        except requests.ConnectionError as e:
+            print("🗄️ First time starting the vllm server, no need to check previous model.")
+            return
+        except Exception as e:
+            print(f"❌ An unexpected error occurred while trying to connect to the server. Details:\n{e}")
+            return
+
+        if self.server_type != "vllm":
+            return
+        elif self.server_type == "vllm":
+            prev_model = res.json()["data"][0]["id"]
+
+        if prev_model == self.model_name:
+            return
+        elif prev_model != self.model_name:
+            stop_cmd = f"{self.stop_vllm_path}"
+            command = shlex.split(stop_cmd)
+            try:
+                subprocess.run(command, check=True)
+                print(f"🛑 Stopped the previous vllm server for model: {prev_model}.")
+            except subprocess.CalledProcessError as e:
+                print(f"❌ Failed to stop the previous vllm server. Error: {e}")
+            except Exception as e:
+                print(f"❌ An unexpected error occurred while stopping the previous vllm server. Details:\n{e}")
 
     def _start_vllm_server(self) -> None:
         if self.server_type == "vllm":
@@ -77,16 +107,16 @@ class ModelExecutor:
                     print(f"🗄️ Waiting for warm-up..., please wait for about {self.warm_up_sec+5} seconds")
                     count_down(self.warm_up_sec + 5)  # Wait a moment for warm-up of the server
             except FileNotFoundError as e:
-                print(f"❌ Error: some file is not found, please check the paths. Details: {e}")
+                print(f"❌ Error: some file is not found, please check the paths. Details:\n{e}")
             except Exception as e:
-                print(f"❌ An unexpected error occurred while starting the VLLM server: {e}")
+                print(f"❌ An unexpected error occurred while starting the VLLM server. Details:\n{e}")
 
     def stream(self, messages: Annotated[List[Dict[str, str]], 'Example: [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]']) -> Generator["ChunkWrapper", None, None]:
         self._set_vllm_settings()
+        self._check_model_change_and_stop_previous()
         self._start_vllm_server()
         params = self.gen_conf
         params["stream"] = True
-
         response = litellm.completion(model=self.model_id, messages=messages, **params)
 
         for chunk in response:
@@ -98,7 +128,7 @@ class ModelExecutor:
             yield ChunkWrapper(content, reasoning=reasoning, response_metadata={"model": model_id})
 
     def __setattr__(self, name: str, value: Any) -> None:
-        vllm_settings = ["model_name", "warm_up_sec", "idle_min", "vllm_model_weights_path", "exec_vllm_path", "exec_vllm_log_path", "vllm_server_log_path"]
+        vllm_settings = ["model_name", "warm_up_sec", "idle_min", "vllm_model_weights_path", "exec_vllm_path", "stop_vllm_path", "exec_vllm_log_path", "vllm_server_log_path"]
         if name in ["model_id", "gen_conf", "server_type"] + vllm_settings:
             super().__setattr__(name, value)
         else:
