@@ -12,9 +12,9 @@ from .utils import load_config
 THIS_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def count_down(seconds: int) -> None:
+def count_down(seconds: int, event: str) -> None:
     for i in range(seconds, 0, -1):
-        print(f"⌛ Waiting for {i:3d} seconds...", end="\r")
+        print(f"⌛ {event}..., {i} seconds remaining", end="\r")
         time.sleep(1)
     print(" " * 30, end="\r")  # Clear the line after countdown
 
@@ -83,7 +83,7 @@ class ModelExecutor:
             command = shlex.split(stop_cmd)
             try:
                 subprocess.run(command, check=True)
-                time.sleep(2)  # Give it a moment to stop the previous server
+                time.sleep(1)  # Cool down a bit after stopping the previous server
                 print(f"🛑 Stopped the previous vllm server for model: {prev_model}.")
             except subprocess.CalledProcessError as e:
                 print(f"❌ Failed to stop the previous vllm server. Error: {e}")
@@ -106,7 +106,7 @@ class ModelExecutor:
                     )
                     print("🗄️ You can check the logs in exec_vllm.log")
                     print(f"🗄️ Waiting for warm-up..., please wait for about {self.warm_up_sec+5} seconds")
-                    count_down(self.warm_up_sec + 5)  # Wait a moment for warm-up of the server
+                    count_down(self.warm_up_sec + 5, "Warm-up vllm server")
             except FileNotFoundError as e:
                 print(f"❌ Error: some file is not found, please check the paths. Details:\n{e}")
             except Exception as e:
