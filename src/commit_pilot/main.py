@@ -135,9 +135,9 @@ def interaction_loop():
                 new_model_spec = input(f"Enter new model name (or press Enter to keep current):\nAvailable models: {', '.join(valid_models)}\n>>> ")
                 if new_model_spec in valid_models:
                     MODEL_SPEC = new_model_spec
-                    print(f"Model changed to: {MODEL_SPEC}")
+                    print(f"🔀 Model changed to: {MODEL_SPEC}")
                 else:
-                    print("Model unchanged.")
+                    print("🚧 Model Unchanged.")
             case "y" | "yes":
                 print("🔄 Committing changes...")
                 res = run_command(command=commands["commit"], extra_args=[commit_message])
