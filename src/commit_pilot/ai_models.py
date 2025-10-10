@@ -59,6 +59,7 @@ class ModelExecutor:
             self.stop_vllm_path = os.path.join(THIS_SCRIPT_DIR, "bin/stop_vllm.sh")
             self.vllm_model_weights_path = os.path.join(vllm_model_weights_root_dir, self.model_name)
             self.exec_vllm_log_path = os.path.join(log_dir, "exec_vllm.log")
+            self.stop_vllm_log_path = os.path.join(log_dir, "stop_vllm.log")
             self.vllm_server_log_path = os.path.join(log_dir, "vllm_server.log")
 
     def _check_model_change_and_stop_previous(self) -> None:
@@ -82,7 +83,8 @@ class ModelExecutor:
             stop_cmd = f"{self.stop_vllm_path}"
             command = shlex.split(stop_cmd)
             try:
-                subprocess.run(command, check=True)
+                with open(self.stop_vllm_log_path, "w") as log_file:
+                    subprocess.run(command, stdout=log_file, stderr=subprocess.STDOUT, check=True)
                 time.sleep(1)  # Cool down a bit after stopping the previous server
                 print(f"🛑 Stopped the previous vllm server for model: {prev_model}.")
             except subprocess.CalledProcessError as e:
@@ -99,7 +101,7 @@ class ModelExecutor:
                 with open(self.exec_vllm_log_path, "w") as log_file:
                     # If vllm server is already running, `exec_vllm.sh` will automatically stop. If not, it will start the server.
                     proc = subprocess.Popen(command, stdout=log_file, stderr=subprocess.STDOUT)
-                    time.sleep(1)  # Give it a moment to stop proc, when vllm server is already running
+                time.sleep(1)  # Give it a moment to stop proc, when vllm server is already running
                 if proc.poll() is None:
                     print(
                         f"🗄️ First time starting vllm server for model {self.model_name}, you don't need to start it again for next {self.idle_min} minutes.(Everytime you send a request, the idle timer will reset.)"
@@ -129,7 +131,7 @@ class ModelExecutor:
             yield ChunkWrapper(content, reasoning=reasoning, response_metadata={"model": model_id})
 
     def __setattr__(self, name: str, value: Any) -> None:
-        vllm_settings = ["model_name", "warm_up_sec", "idle_min", "vllm_model_weights_path", "exec_vllm_path", "stop_vllm_path", "exec_vllm_log_path", "vllm_server_log_path"]
+        vllm_settings = ["model_name", "warm_up_sec", "idle_min", "vllm_model_weights_path", "exec_vllm_path", "stop_vllm_path", "exec_vllm_log_path", "stop_vllm_log_path", "vllm_server_log_path"]
         if name in ["model_id", "gen_conf", "server_type"] + vllm_settings:
             super().__setattr__(name, value)
         else:
