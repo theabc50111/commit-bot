@@ -13,3 +13,7 @@ source "$(dirname "$0")/vllm_utils.sh"
 echo "Stopping VLLM server..."
 graceful_shutdown_vllm
 echo "VLLM server stopped."
+
+echo "Stopping VLLM launcher script..."
+graceful_shutdown_vllm_launcher
+echo "VLLM launcher script stopped."
