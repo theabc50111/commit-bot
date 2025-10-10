@@ -27,6 +27,26 @@ graceful_shutdown_vllm() {
     fi
 }
 
+# Function to shut down the launcher script itself
+graceful_shutdown_vllm_launcher() {
+    echo "Shutting down VLLM launcher script..."
+    LAUNCHER_PATH="$(dirname "$0")/exec_vllm.sh"
+    LAUNCHER_PID=$(ps aux | grep "$LAUNCHER_PATH" | grep -v "grep" | awk '{print $2}')
+    if [ -z "$LAUNCHER_PID" ]; then
+        echo "No VLLM launcher script process found."
+    else
+        echo "Found VLLM launcher script process with PID: $LAUNCHER_PID"
+        kill "$LAUNCHER_PID"
+
+        echo "Waiting for launcher script process to terminate..."
+        if ! timeout 10 tail --pid="$LAUNCHER_PID" -f /dev/null; then
+            echo "Graceful shutdown of launcher script failed. Forcefully killing the process."
+            kill -9 "$LAUNCHER_PID"
+        else
+            echo "VLLM launcher script process terminated successfully."
+        fi
+    fi
+}
 
 monitor_and_shutdown_vllm() {
     # Function to monitor the server for idle time and shut it down.
