@@ -1,6 +1,7 @@
 import os
 import random
 import re
+from pathlib import Path
 from typing import Any
 
 from pyhocon import ConfigFactory
@@ -16,12 +17,16 @@ def load_config(config_file_name: str) -> ConfigFactory:
     Returns:
         ConfigFactory: Parsed configuration object.
     """
+    home_dir = Path.home()
+    if (home_dir / f".config/commit-pilot/{config_file_name}").exists():
+        user_config_path = (home_dir / f".config/commit-pilot/{config_file_name}").as_posix()
+        user_config = ConfigFactory.parse_file(user_config_path)
     this_script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(this_script_dir, "conf", config_file_name)
-    if not os.path.exists(config_path):
-        raise FileNotFoundError(f"Configuration file {config_file_name} not found in {this_script_dir}/conf")
+    module_default_config_path = os.path.join(this_script_dir, "conf", config_file_name)
+    module_default_config = ConfigFactory.parse_file(module_default_config_path)
+    ret_config = user_config.with_fallback(module_default_config) if "user_config" in locals() else module_default_config
 
-    return ConfigFactory.parse_file(config_path)
+    return ret_config
 
 
 def get_conf_regen_commit_msg() -> tuple[str, dict[str, Any]]:
