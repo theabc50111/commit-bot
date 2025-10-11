@@ -40,53 +40,43 @@ class ChunkWrapper:
 
 
 class ModelExecutor:
+    __prev_model_id: Optional[str] = None
+    __prev_server_type: Optional[str] = None
+
     def __init__(self, model_id: str, gen_conf: Dict[str, Any], api_base_url: str, server_type: str) -> None:
         self.model_id = model_id
         self.gen_conf = gen_conf.copy()
         self.api_base = api_base_url
         self.server_type = server_type
+        self.log_dir = os.path.join(THIS_SCRIPT_DIR, "var/logs")
 
     def _set_vllm_settings(self) -> None:
         if self.server_type == "vllm":
-            log_dir = os.path.join(THIS_SCRIPT_DIR, "var/logs")
-            vllm_model_weights_root_dir = load_config("job.conf").get("vllm_model_weights_root_dir", os.path.join(THIS_SCRIPT_DIR, "model_weights"))
+            self.vllm_model_weights_root_dir = load_config("job.conf").get("vllm_model_weights_root_dir", os.path.join(THIS_SCRIPT_DIR, "model_weights"))
             self.model_id = self.model_id.replace("vllm", "openai")
             self.model_name = self.model_id.split("/")[-1]
             self.api_key = "mock_api_key"
             self.warm_up_sec = load_config("job.conf").get("server_warm_up_seconds", 40)
             self.idle_min = load_config("job.conf").get("server_idle_timeout_minutes", 3)
-            self.exec_vllm_path = os.path.join(THIS_SCRIPT_DIR, "bin/exec_vllm.sh")
-            self.stop_vllm_path = os.path.join(THIS_SCRIPT_DIR, "bin/stop_vllm.sh")
-            self.vllm_model_weights_path = os.path.join(vllm_model_weights_root_dir, self.model_name)
-            self.exec_vllm_log_path = os.path.join(log_dir, "exec_vllm.log")
-            self.stop_vllm_log_path = os.path.join(log_dir, "stop_vllm.log")
-            self.vllm_server_log_path = os.path.join(log_dir, "vllm_server.log")
 
     def _check_model_change_and_stop_previous(self) -> None:
-        try:
-            res = requests.get(f"{self.gen_conf['api_base']}/models")
-        except requests.ConnectionError as e:
-            print("🗄️ First time starting the vllm server, no need to check previous model.")
+        if ModelExecutor.__prev_model_id is None:
             return
-        except Exception as e:
-            print(f"❌ An unexpected error occurred while trying to connect to the server. Details:\n{e}")
+        elif self.server_type not in ["ollama", "vllm"]:
+            return
+        elif ModelExecutor.__prev_model_id == self.model_id:
             return
 
-        if self.server_type != "vllm":
-            return
-        elif self.server_type == "vllm":
-            prev_model = res.json()["data"][0]["id"]
-
-        if prev_model == self.model_name:
-            return
-        elif prev_model != self.model_name:
-            stop_cmd = f"{self.stop_vllm_path}"
+        if ModelExecutor.__prev_model_id != self.model_id and ModelExecutor.__prev_server_type == "vllm":
+            stop_vllm_path = os.path.join(THIS_SCRIPT_DIR, "bin/stop_vllm.sh")
+            stop_vllm_log_path = os.path.join(self.log_dir, "stop_vllm.log")
+            stop_cmd = f"{stop_vllm_path}"
             command = shlex.split(stop_cmd)
             try:
-                with open(self.stop_vllm_log_path, "w") as log_file:
+                with open(stop_vllm_log_path, "w") as log_file:
                     subprocess.run(command, stdout=log_file, stderr=subprocess.STDOUT, check=True)
                 time.sleep(1)  # Cool down a bit after stopping the previous server
-                print(f"🛑 Stopped the previous vllm server for model: {prev_model}.")
+                print(f"🛑 Stopped the previous vllm server for model: {ModelExecutor.__prev_model_id.split('/')[-1]}.")
             except subprocess.CalledProcessError as e:
                 print(f"❌ Failed to stop the previous vllm server. Error: {e}")
             except Exception as e:
@@ -94,11 +84,15 @@ class ModelExecutor:
 
     def _start_vllm_server(self) -> None:
         if self.server_type == "vllm":
-            start_cmd = f"{self.exec_vllm_path} --model-path {self.vllm_model_weights_path} --model-name {self.model_name} --warm-up-sec {self.warm_up_sec} --idle-timeout-min {self.idle_min} --server-log-path {self.vllm_server_log_path}"
+            exec_vllm_path = os.path.join(THIS_SCRIPT_DIR, "bin/exec_vllm.sh")
+            exec_vllm_log_path = os.path.join(self.log_dir, "exec_vllm.log")
+            vllm_model_weights_path = os.path.join(self.vllm_model_weights_root_dir, self.model_name)
+            vllm_server_log_path = os.path.join(self.log_dir, "vllm_server.log")
+            start_cmd = f"{exec_vllm_path} --model-path {vllm_model_weights_path} --model-name {self.model_name} --warm-up-sec {self.warm_up_sec} --idle-timeout-min {self.idle_min} --server-log-path {vllm_server_log_path}"
             command = shlex.split(start_cmd)
 
             try:
-                with open(self.exec_vllm_log_path, "w") as log_file:
+                with open(exec_vllm_log_path, "w") as log_file:
                     # If vllm server is already running, `exec_vllm.sh` will automatically stop. If not, it will start the server.
                     proc = subprocess.Popen(command, stdout=log_file, stderr=subprocess.STDOUT)
                 time.sleep(1)  # Give it a moment to stop proc, when vllm server is already running
@@ -118,6 +112,8 @@ class ModelExecutor:
         self._set_vllm_settings()
         self._check_model_change_and_stop_previous()
         self._start_vllm_server()
+        ModelExecutor.__prev_model_id = self.model_id
+        ModelExecutor.__prev_server_type = self.server_type
         params = self.gen_conf
         params["stream"] = True
         response = litellm.completion(model=self.model_id, messages=messages, **params)
@@ -131,8 +127,8 @@ class ModelExecutor:
             yield ChunkWrapper(content, reasoning=reasoning, response_metadata={"model": model_id})
 
     def __setattr__(self, name: str, value: Any) -> None:
-        vllm_settings = ["model_name", "warm_up_sec", "idle_min", "vllm_model_weights_path", "exec_vllm_path", "stop_vllm_path", "exec_vllm_log_path", "stop_vllm_log_path", "vllm_server_log_path"]
-        if name in ["model_id", "gen_conf", "server_type"] + vllm_settings:
+        vllm_settings = ["model_name", "warm_up_sec", "idle_min", "vllm_model_weights_root_dir"]
+        if name in ["model_id", "gen_conf", "server_type", "log_dir"] + vllm_settings:
             super().__setattr__(name, value)
         else:
             self.gen_conf[name] = value
