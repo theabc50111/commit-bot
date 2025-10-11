@@ -53,12 +53,13 @@ class ModelExecutor:
 
     def _set_vllm_settings(self) -> None:
         if self.server_type == "vllm":
-            self.vllm_model_weights_root_dir = load_config("job.conf").get("vllm_model_weights_root_dir", os.path.join(THIS_SCRIPT_DIR, "model_weights"))
             self.model_id = self.model_id.replace("vllm", "openai")
             self.model_name = self.model_id.split("/")[-1]
             self.api_key = "mock_api_key"
             self.warm_up_sec = load_config("job.conf").get("server_warm_up_seconds", 40)
             self.idle_min = load_config("job.conf").get("server_idle_timeout_minutes", 3)
+            self.vram_limit = load_config("job.conf").get("vllm_gpu_memory_utilization_limit", 0.8)
+            self.vllm_model_weights_root_dir = load_config("job.conf").get("vllm_model_weights_root_dir", os.path.join(THIS_SCRIPT_DIR, "model_weights"))
 
     def _check_model_change_and_stop_previous(self) -> None:
         if ModelExecutor.__prev_model_id is None:
@@ -100,7 +101,7 @@ class ModelExecutor:
             exec_vllm_log_path = os.path.join(self.log_dir, "exec_vllm.log")
             vllm_model_weights_path = os.path.join(self.vllm_model_weights_root_dir, self.model_name)
             vllm_server_log_path = os.path.join(self.log_dir, "vllm_server.log")
-            start_cmd = f"{exec_vllm_path} --model-path {vllm_model_weights_path} --model-name {self.model_name} --warm-up-sec {self.warm_up_sec} --idle-timeout-min {self.idle_min} --server-log-path {vllm_server_log_path}"
+            start_cmd = f"{exec_vllm_path} --model-path {vllm_model_weights_path} --model-name {self.model_name} --warm-up-sec {self.warm_up_sec} --idle-timeout-min {self.idle_min} --server-log-path {vllm_server_log_path} --gpu-memory-utilization {self.vram_limit}"
             command = shlex.split(start_cmd)
 
             try:
@@ -140,7 +141,7 @@ class ModelExecutor:
             yield ChunkWrapper(content, reasoning=reasoning, response_metadata={"model": model_id})
 
     def __setattr__(self, name: str, value: Any) -> None:
-        vllm_settings = ["model_name", "warm_up_sec", "idle_min", "vllm_model_weights_root_dir"]
+        vllm_settings = ["model_name", "warm_up_sec", "idle_min", "vram_limit", "vllm_model_weights_root_dir"]
         if name in ["model_id", "gen_conf", "server_type", "log_dir"] + vllm_settings:
             super().__setattr__(name, value)
         else:
