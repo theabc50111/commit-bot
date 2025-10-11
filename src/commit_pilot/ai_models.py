@@ -42,11 +42,12 @@ class ChunkWrapper:
 class ModelExecutor:
     __prev_model_id: Optional[str] = None
     __prev_server_type: Optional[str] = None
+    __prev_api_base: Optional[str] = None
 
     def __init__(self, model_id: str, gen_conf: Dict[str, Any], api_base_url: str, server_type: str) -> None:
         self.model_id = model_id
         self.gen_conf = gen_conf.copy()
-        self.api_base = api_base_url
+        self.gen_conf["api_base"] = api_base_url
         self.server_type = server_type
         self.log_dir = os.path.join(THIS_SCRIPT_DIR, "var/logs")
 
@@ -67,20 +68,31 @@ class ModelExecutor:
         elif ModelExecutor.__prev_model_id == self.model_id:
             return
 
-        if ModelExecutor.__prev_model_id != self.model_id and ModelExecutor.__prev_server_type == "vllm":
-            stop_vllm_path = os.path.join(THIS_SCRIPT_DIR, "bin/stop_vllm.sh")
-            stop_vllm_log_path = os.path.join(self.log_dir, "stop_vllm.log")
-            stop_cmd = f"{stop_vllm_path}"
-            command = shlex.split(stop_cmd)
-            try:
-                with open(stop_vllm_log_path, "w") as log_file:
-                    subprocess.run(command, stdout=log_file, stderr=subprocess.STDOUT, check=True)
-                time.sleep(1)  # Cool down a bit after stopping the previous server
-                print(f"🛑 Stopped the previous vllm server for model: {ModelExecutor.__prev_model_id.split('/')[-1]}.")
-            except subprocess.CalledProcessError as e:
-                print(f"❌ Failed to stop the previous vllm server. Error: {e}")
-            except Exception as e:
-                print(f"❌ An unexpected error occurred while stopping the previous vllm server. Details:\n{e}")
+        if ModelExecutor.__prev_model_id != self.model_id:
+            prev_model_name = ModelExecutor.__prev_model_id.split("/")[-1]
+            if ModelExecutor.__prev_server_type == "vllm":
+                stop_vllm_path = os.path.join(THIS_SCRIPT_DIR, "bin/stop_vllm.sh")
+                stop_vllm_log_path = os.path.join(self.log_dir, "stop_vllm.log")
+                stop_cmd = f"{stop_vllm_path}"
+                command = shlex.split(stop_cmd)
+                try:
+                    with open(stop_vllm_log_path, "w") as log_file:
+                        subprocess.run(command, stdout=log_file, stderr=subprocess.STDOUT, check=True)
+                    time.sleep(1)  # Cool down a bit after stopping the previous server
+                    print(f"🛑 Stopped the previous vllm server for model: {prev_model_name}.")
+                except subprocess.CalledProcessError as e:
+                    print(f"❌ Failed to stop the previous vllm server. Error: {e}")
+                except Exception as e:
+                    print(f"❌ An unexpected error occurred while stopping the previous vllm server. Details:\n{e}")
+            elif ModelExecutor.__prev_server_type == "ollama":
+                try:
+                    response = requests.post(f"{ModelExecutor.__prev_api_base}/api/generate", json={"model": prev_model_name, "prompt": "", "keep_alive": 0}, timeout=1)
+                    if response.status_code == 200:
+                        print(f"🛑 Stopped the previous ollama server for model: {prev_model_name}.")
+                    else:
+                        print(f"❌ Failed to stop the previous ollama server. Status code: {response.status_code}, Response: {response.text}")
+                except requests.RequestException as e:
+                    print(f"❌ An error occurred while trying to stop the previous ollama server. Details:\n{e}")
 
     def _start_vllm_server(self) -> None:
         if self.server_type == "vllm":
@@ -114,6 +126,7 @@ class ModelExecutor:
         self._start_vllm_server()
         ModelExecutor.__prev_model_id = self.model_id
         ModelExecutor.__prev_server_type = self.server_type
+        ModelExecutor.__prev_api_base = self.gen_conf.get("api_base")
         params = self.gen_conf
         params["stream"] = True
         response = litellm.completion(model=self.model_id, messages=messages, **params)
