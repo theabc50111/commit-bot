@@ -13,8 +13,8 @@ source "$(dirname "$0")/vllm_utils.sh"
 # --- Argument Handling with getopt ---
 
 # Define short and long options
-SHORT_OPTS="p:n:w:i:s:"
-LONG_OPTS="model-path:,model-name:, warm-up-sec:, idle-timeout-minutes:, server-log-path:"
+SHORT_OPTS="p:n:w:i:s:g:"
+LONG_OPTS="model-path:,model-name:,warm-up-sec:,idle-timeout-minutes:,server-log-path:,gpu-memory-utilization:"
 
 # Parse the options using getopt
 PARSED=$(getopt --options "$SHORT_OPTS" --long "$LONG_OPTS" --name "$0" -- "$@")
@@ -30,6 +30,7 @@ eval set -- "$PARSED"
 
 model_path=""
 model_name=""
+gpu_memory_utilization=0.9 # Default value
 
 # Loop through the options and assign them to variables
 while true; do
@@ -54,6 +55,10 @@ while true; do
             server_log_path="$2"
             shift 2 # past argument and value
             ;;
+        -g|--gpu-memory-utilization)
+            gpu_memory_utilization="$2"
+            shift 2 # past argument and value
+            ;;
         --)
             shift
             break
@@ -67,8 +72,8 @@ done
 
 # Check if required arguments were provided
 if [ -z "$model_path" ] || [ -z "$model_name" ] || [ -z "$warm_up_sec" ] || [ -z "$idle_timeout_minutes" ] || [ -z "$server_log_path" ]; then
-    echo "Usage: $0 --model-path <path> --model-name <api_name> --warm-up-sec <seconds> --idle-timeout-minutes <minutes> --server-log-path <path>"
-    echo "   or: $0 -p <path> -n <api_name> -w <seconds> -i <minutes> -s <path>"
+    echo "Usage: $0 --model-path <path> --model-name <api_name> --warm-up-sec <seconds> --idle-timeout-minutes <minutes> --server-log-path <path> [--gpu-memory-utilization <fraction>]"
+    echo "   or: $0 -p <path> -n <api_name> -w <seconds> -i <minutes> -s <path> [-g <fraction>]"
     echo ""
     echo "--model-path (-p), --model-name (-n), --warm-up-sec (-w), --idle-timeout-minutes (-i) and --server-log-path (-s) are required."
     exit 1
@@ -89,6 +94,7 @@ VLLM_START_CMD=(
 "--model" "${model_path}"
 "--served-model-name" "${model_name}"
 "--max-model-len" 58000
+"--gpu-memory-utilization" "${gpu_memory_utilization}"
 )
 
 
