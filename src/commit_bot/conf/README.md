@@ -1,10 +1,10 @@
-# Commit Pilot Configuration
+# commit-bot Configuration
 
-This directory contains the configuration files for `commit-pilot`, an AI-powered tool that generates git commit messages based on your staged changes.
+This directory contains the configuration files for `commit-bot`, an AI-powered tool that generates git commit messages based on your staged changes.
 
 ## Configuration Files
 
-The behavior of the `commit-pilot` tool is controlled by the two files in this directory: `job.conf` and `model.conf`.
+The behavior of the `commit-bot` tool is controlled by the two files in this directory: `job.conf` and `model.conf`.
 
 ### `job.conf`
 
@@ -17,7 +17,7 @@ Key settings include:
 
 ### `model.conf`
 
-This file acts as a catalog for all models that `commit-pilot` can use. It defines the available models, their connection details, and default generation parameters.
+This file acts as a catalog for all models that `commit-bot` can use. It defines the available models, their connection details, and default generation parameters.
 
 Key sections include:
 - `ollama_base_url` / `vllm_base_url`: The API endpoints for the local model servers.

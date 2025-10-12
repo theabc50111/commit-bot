@@ -2,7 +2,7 @@ import subprocess
 
 import pytest
 
-from src.commit_pilot.main import generate_commit_message, run_command
+from src.commit_bot.main import generate_commit_message, run_command
 
 
 @pytest.mark.skip

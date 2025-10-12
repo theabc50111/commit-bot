@@ -18,8 +18,8 @@ def load_config(config_file_name: str) -> ConfigFactory:
         ConfigFactory: Parsed configuration object.
     """
     home_dir = Path.home()
-    if (home_dir / f".config/commit-pilot/{config_file_name}").exists():
-        user_config_path = (home_dir / f".config/commit-pilot/{config_file_name}").as_posix()
+    if (home_dir / f".config/commit-bot/{config_file_name}").exists():
+        user_config_path = (home_dir / f".config/commit-bot/{config_file_name}").as_posix()
         user_config = ConfigFactory.parse_file(user_config_path)
     this_script_dir = os.path.dirname(os.path.abspath(__file__))
     module_default_config_path = os.path.join(this_script_dir, "conf", config_file_name)

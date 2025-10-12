@@ -1,7 +1,7 @@
 import pytest
 
-from src.commit_pilot.ai_models import AIModels
-from src.commit_pilot.utils import load_config
+from src.commit_bot.ai_models import AIModels
+from src.commit_bot.utils import load_config
 
 
 @pytest.fixture

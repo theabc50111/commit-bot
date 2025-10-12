@@ -1,4 +1,4 @@
-# Commit Pilot
+# Commit Bot
 
 <!-- Badges will go here -->
 
@@ -13,7 +13,7 @@
 
 ## Description
 
-Commit Pilot is a command-line tool that uses Large Language Models (LLMs) to automatically generate git commit messages from your staged changes. It streamlines the commit process by providing well-formatted, context-aware messages, which you can then accept, edit, or regenerate on the fly.
+Commit Bot is a command-line tool that uses Large Language Models (LLMs) to automatically generate git commit messages from your staged changes. It streamlines the commit process by providing well-formatted, context-aware messages, which you can then accept, edit, or regenerate on the fly.
 
 ## Features
 
@@ -47,11 +47,11 @@ You must have a model backend running. Choose one of the following:
 
 For the VLLM backend, you must manually download model weights from Hugging Face. The application will automatically start and stop the VLLM server as needed.
 - where to put the model weights:
-    - You can put the model weights in `./src/commit_pilot/model_weights/`
-    - Or specify a different path in `~/.config/commit_pilot/job.conf` under the key `vllm_model_weights_root_dir`.
-        - You can create this config file by copying `src/commit_pilot/conf/job.conf` to `~/.config/commit_pilot/job.conf` and modifying it as needed.
+    - You can put the model weights in `./src/commit_bot/model_weights/`
+    - Or specify a different path in `~/.config/commit_bot/job.conf` under the key `vllm_model_weights_root_dir`.
+        - You can create this config file by copying `src/commit_bot/conf/job.conf` to `~/.config/commit_bot/job.conf` and modifying it as needed.
 
-_(For more details on backend setup, see the README in `src/commit_pilot/conf/`)_
+_(For more details on backend setup, see the README in `src/commit_bot/conf/`)_
 
 ### 2. Install the Package
 
@@ -59,16 +59,16 @@ Clone the repository and use `pip` to install the package in editable mode.
 
 ```bash
 git clone <repository-url>
-cd commit_pilot
+cd commit-bot
 pip install -e .
 ```
 
 ## Usage
 
-Once installed, simply run the `commit-pilot` command in your git repository after staging your changes (`git add .`).
+Once installed, simply run the `commit-bot` command in your git repository after staging your changes (`git add .`).
 
 ```bash
-commit-pilot
+commit-bot
 ```
 
 This will start an interactive session where the tool generates a commit message and prompts you for action:
@@ -82,12 +82,12 @@ This will start an interactive session where the tool generates a commit message
 
 ## Configuration
 
-The behavior of Commit Pilot is controlled by two configuration files located in `src/commit_pilot/conf/`:
+The behavior of Commit Bot is controlled by two configuration files located in `src/commit_bot/conf/`:
 
 - **`job.conf`**: Defines runtime settings, such as the currently active model, server timeouts, and resource limits (e.g., GPU utilization for VLLM).
 - **`model.conf`**: Acts as a catalog for all available models, defining their connection details, backend type (Ollama, VLLM, or third-party), and default generation parameters.
 
-For detailed information, please refer to the `Readme.md` inside the `src/commit_pilot/conf/` directory.
+For detailed information, please refer to the `Readme.md` inside the `src/commit_bot/conf/` directory.
 
 ## License
 
