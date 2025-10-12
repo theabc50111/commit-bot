@@ -3,11 +3,11 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "commit_pilot"
-version = "0.1.0"
+name = "commit-bot"
+version = "1.1.0"
 description = "A brief description of your project."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -40,10 +40,10 @@ dev = [
 ]
 
 [project.scripts]
-commit-pilot = "commit_pilot.main:run"
+commit-bot = "commit_bot.main:run"
 
 [tool.setuptools.package-data]
-"commit_pilot" = ["conf/*.conf"]
+"commit_bot" = ["conf/*.conf"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
