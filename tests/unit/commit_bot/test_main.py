@@ -5,14 +5,12 @@ import pytest
 from src.commit_bot.main import generate_commit_message, run_command
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize(argnames="command, extra_args, expected", argvalues=[("echo", ["hi~"], "hi~"), ("git", ["rev-parse", "--git-dir"], ".git")], ids=["echo", "check git dir"])
 def test_run_command(command, extra_args, expected):
     res = run_command(command, extra_args)
     assert expected in res
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize(
     argnames="command, extra_args, expected_exception",
     argvalues=[

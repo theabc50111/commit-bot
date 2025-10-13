@@ -20,7 +20,7 @@ def model_name():
 def expected_model_id(model_name):
     """Fixture to provide the expected model name for testing."""
     model_id = load_config("model.conf").as_plain_ordered_dict().get("model_configs", {}).get(model_name, {}).get("model_id", model_name)
-    post_processed_model_id = model_id.replace("ollama/", "")
+    post_processed_model_id = model_id.replace("ollama/", "").replace("vllm/", "")
     return post_processed_model_id
 
 
@@ -77,11 +77,11 @@ def test_ai_models_is_singleton_and_caches_models():
 
     # --- Test Model Caching Part ---
     # Get a model twice from the first instance
-    model1 = ai_models1.get_model("ollama-qwen3:0.6b")
-    model2 = ai_models1.get_model("ollama-qwen3:0.6b")
+    model1 = ai_models1.get_model("ollama-qwen3:4b")
+    model2 = ai_models1.get_model("ollama-qwen3:4b")
 
     # Get the same model from the second instance
-    model_from_instance2 = ai_models2.get_model("ollama-qwen3:0.6b")
+    model_from_instance2 = ai_models2.get_model("ollama-qwen3:4b")
 
     print(f"id(ai_models1): {id(ai_models1)}")
     print(f"id(ai_models2): {id(ai_models2)}")
