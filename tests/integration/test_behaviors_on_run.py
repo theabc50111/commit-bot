@@ -16,6 +16,9 @@ def run_command_hook(command, extra_args=None):
     if command == commands["get_stashed_changes"]:
         print("--- Mocking run_command for 'get_stashed_changes' ---")
         return "## fake diff from mock"
+    elif command == commands["commit"]:
+        print(f"--- Mocking run_command for 'commit' with message: {extra_args[0]} ---")
+        return f"[main 1234567] {extra_args[0]}"
     else:
         print(f"--- Calling original run_command with: {command} ---")
         return original_run_command(command, extra_args)
@@ -23,20 +26,50 @@ def run_command_hook(command, extra_args=None):
 
 # fmt: off
 @pytest.mark.parametrize(
-    argenames=[
-        "behavior"
+    argnames=[
+        "user_inputs",
+        "expected_keywords"
     ],
     argvalues=[
-        ("s", "r", "r", "n")
+        #pytest.param(
+        #    ("y",),
+        #    ["Committing changes...", "Committed with message:"],
+        #    id="commit_immediately",
+        #),
+        #pytest.param(
+        #    ("n",),
+        #    ["Commit aborted by user."],
+        #    id="abort_immediately",
+        #),
+        #pytest.param(
+        #    ("s", "r", "y"),
+        #    ["Current staged changes:", "Regenerating commit message...", "Committing changes...", "Committed with message:"],
+        #    id="show_regenerate_commit",
+        #),
+        pytest.param(
+            ("r", "m", "ollama-gemma3:4b", "r", "y"),
+            [
+                "Regenerating commit message...",
+                "Model changed to: ollama-gemma3:4b",
+                "Committing changes...",
+                "Committed with message:",
+            ],
+            id="regenerate_change_model_regenerate_commit",
+        ),
     ]
 )
 # fmt: on
-def test_conditional_patch(behavior):
+def test_conditional_patch(capsys, user_inputs, expected_keywords):
     """
     Tests that run_command is only mocked for a specific argument.
     """
-    with patch("builtins.input", side_effect=behavior), patch("src.commit_bot.main.run_command", side_effect=run_command_hook):
+    with patch("builtins.input", side_effect=user_inputs), patch("src.commit_bot.main.run_command", side_effect=run_command_hook) as mock_run_command:
         run()
-
-    # You can still assert calls to the mock
-    # assert mock_run_command.call_count >= 1
+    captured = capsys.readouterr()
+    # DEBUGGING: Print the captured output explicitly
+    print("\n--- Captured Output ---")
+    print(captured.out)
+    print("-----------------------\n")
+    for keyword in expected_keywords:
+        assert keyword in captured.out
+    assert mock_run_command.call_count >= 1
