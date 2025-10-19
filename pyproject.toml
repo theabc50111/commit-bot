@@ -47,3 +47,6 @@ commit-bot = "commit_bot.main:run"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+norecursedirs = ["exploration"]
