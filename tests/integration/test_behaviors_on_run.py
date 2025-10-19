@@ -46,17 +46,29 @@ def run_command_hook(command, extra_args=None):
         #    ["Current staged changes:", "Regenerating commit message...", "Committing changes...", "Committed with message:"],
         #    id="show_regenerate_commit",
         #),
+        #pytest.param(
+        #    ("r", "m", "ollama-gemma3:4b", "r", "y"),
+        #    [
+        #        "Regenerating commit message...",
+        #        "Model changed to: ollama-gemma3:4b",
+        #        "Committing changes...",
+        #        "Committed with message:",
+        #    ],
+        #    id="regenerate_change_model_regenerate_commit",
+        #),
         pytest.param(
-            ("r", "m", "ollama-gemma3:4b", "r", "y"),
+            ("r", "m", "vllm-qwen3:4b", "r", "m", "vllm-gpt-oss:20b", "r", "m", "ollama-gemma3:4b", "r", "m", "vllm-gpt-oss:20b", "y"),
             [
                 "Regenerating commit message...",
+                "Model changed to: vllm-qwen3:4b",
+                "Model changed to: vllm-gpt-oss:20b",
                 "Model changed to: ollama-gemma3:4b",
                 "Committing changes...",
                 "Committed with message:",
             ],
-            id="regenerate_change_model_regenerate_commit",
+            id="multiple_model_changes_before_commit",
         ),
-    ]
+    ],
 )
 # fmt: on
 def test_conditional_patch(capsys, user_inputs, expected_keywords):
