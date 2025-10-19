@@ -31,31 +31,31 @@ def run_command_hook(command, extra_args=None):
         "expected_keywords"
     ],
     argvalues=[
-        #pytest.param(
-        #    ("y",),
-        #    ["Committing changes...", "Committed with message:"],
-        #    id="commit_immediately",
-        #),
-        #pytest.param(
-        #    ("n",),
-        #    ["Commit aborted by user."],
-        #    id="abort_immediately",
-        #),
-        #pytest.param(
-        #    ("s", "r", "y"),
-        #    ["Current staged changes:", "Regenerating commit message...", "Committing changes...", "Committed with message:"],
-        #    id="show_regenerate_commit",
-        #),
-        #pytest.param(
-        #    ("r", "m", "ollama-gemma3:4b", "r", "y"),
-        #    [
-        #        "Regenerating commit message...",
-        #        "Model changed to: ollama-gemma3:4b",
-        #        "Committing changes...",
-        #        "Committed with message:",
-        #    ],
-        #    id="regenerate_change_model_regenerate_commit",
-        #),
+        pytest.param(
+            ("y",),
+            ["Committing changes...", "Committed with message:"],
+            id="commit_immediately",
+        ),
+        pytest.param(
+            ("n",),
+            ["Commit aborted by user."],
+            id="abort_immediately",
+        ),
+        pytest.param(
+            ("s", "r", "y"),
+            ["Current staged changes:", "Regenerating commit message...", "Committing changes...", "Committed with message:"],
+            id="show_regenerate_commit",
+        ),
+        pytest.param(
+            ("r", "m", "ollama-gemma3:4b", "r", "y"),
+            [
+                "Regenerating commit message...",
+                "Model changed to: ollama-gemma3:4b",
+                "Committing changes...",
+                "Committed with message:",
+            ],
+            id="regenerate_change_model_regenerate_commit",
+        ),
         pytest.param(
             ("r", "m", "vllm-qwen3:4b", "r", "m", "vllm-gpt-oss:20b", "r", "m", "ollama-gemma3:4b", "r", "m", "vllm-gpt-oss:20b", "y"),
             [
