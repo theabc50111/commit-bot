@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "commit-bot"
-version = "1.1.0"
+version = "1.1.4"
 description = "A brief description of your project."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -37,13 +37,15 @@ dev = [
     "csvkit",
     "black",
     "tabulate[widechars]",
+    "build",
+    "twine",
 ]
 
 [project.scripts]
 commit-bot = "commit_bot.main:run"
 
 [tool.setuptools.package-data]
-"commit_bot" = ["conf/*.conf"]
+"commit_bot" = ["conf/*.conf", "conf/*.md", "bin/*"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
