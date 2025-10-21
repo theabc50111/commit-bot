@@ -89,6 +89,12 @@ The behavior of Commit Bot is controlled by two configuration files located in `
 
 For detailed information, please refer to the `Readme.md` inside the `commit_bot/conf/` directory.
 
+## TODO
+
+- Automatically create `~/.config/commit_bot/job.conf`  if they do not exist.
+  - Based on the default config files in `commit_bot/conf/`.
+- Warn/Stop `commit-bot` if `~/.config/commit_bot/job.conf` is not available or misconfigured.
+
 ## License
 
 This project is licensed under the **MIT License**. See the [LICENSE](./LICENSE) file for details.
