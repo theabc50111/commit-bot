@@ -47,11 +47,11 @@ You must have a model backend running. Choose one of the following:
 
 For the VLLM backend, you must manually download model weights from Hugging Face. The application will automatically start and stop the VLLM server as needed.
 - where to put the model weights:
-    - You can put the model weights in `./src/commit_bot/model_weights/`
+    - You can edit `commit_bot/conf/job.conf` to set the path for `vllm_model_weights_root_dir`.
     - Or specify a different path in `~/.config/commit_bot/job.conf` under the key `vllm_model_weights_root_dir`.
-        - You can create this config file by copying `src/commit_bot/conf/job.conf` to `~/.config/commit_bot/job.conf` and modifying it as needed.
+        - You can create this config file by copying `commit_bot/conf/job.conf` to `~/.config/commit_bot/job.conf` and modifying it as needed.
 
-_(For more details on backend setup, see the README in `src/commit_bot/conf/`)_
+_(For more details on backend setup, see the README in `commit_bot/conf/`)_
 
 ### 2. Install the Package
 
@@ -82,12 +82,12 @@ This will start an interactive session where the tool generates a commit message
 
 ## Configuration
 
-The behavior of Commit Bot is controlled by two configuration files located in `src/commit_bot/conf/`:
+The behavior of Commit Bot is controlled by two configuration files located in `commit_bot/conf/`:
 
 - **`job.conf`**: Defines runtime settings, such as the currently active model, server timeouts, and resource limits (e.g., GPU utilization for VLLM).
 - **`model.conf`**: Acts as a catalog for all available models, defining their connection details, backend type (Ollama, VLLM, or third-party), and default generation parameters.
 
-For detailed information, please refer to the `Readme.md` inside the `src/commit_bot/conf/` directory.
+For detailed information, please refer to the `Readme.md` inside the `commit_bot/conf/` directory.
 
 ## License
 
