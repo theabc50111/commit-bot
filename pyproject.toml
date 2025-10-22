@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "commit-bot"
-version = "1.1.7"
+version = "1.1.8"
 description = "A brief description of your project."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10, <=3.13"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
